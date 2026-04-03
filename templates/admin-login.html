@@ -6,8 +6,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Login — CivicAlert</title>
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    .auth-page {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%);
+    }
+    .auth-page::before {
+      background:
+        radial-gradient(ellipse 50% 50% at 20% 40%, rgba(59,91,219,.15) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(239,68,68,.06) 0%, transparent 60%);
+    }
+    .auth-card { max-width: 420px; }
+    .auth-logo .icon {
+      background: linear-gradient(135deg, #1e3a8a, #3b5bdb);
+    }
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(239,68,68,.1); color: #ef4444;
+      border: 1px solid rgba(239,68,68,.2);
+      padding: 4px 12px; border-radius: 99px;
+      font-size: .72rem; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .security-notice {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(59,91,219,.06); border: 1px solid rgba(59,91,219,.15);
+      border-radius: var(--radius-sm); padding: 12px;
+      font-size: .8rem; color: var(--text-muted);
+      margin-top: 16px;
+    }
+    .form-input-wrap { position: relative; }
+    .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1rem; pointer-events: none; z-index: 1; }
+    .form-input-wrap .form-input { padding-left: 42px; }
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+  </style>
 </head>
 <body class="auth-page">
+  <div class="grid-bg"></div>
 
   <div class="auth-card">
     <div class="auth-logo">
@@ -16,6 +56,10 @@
         <h2>Admin Access</h2>
         <p>CivicAlert Administration</p>
       </div>
+    </div>
+
+    <div style="text-align:center;margin-top:-8px;margin-bottom:16px;">
+      <span class="admin-badge">🛡️ Restricted Area</span>
     </div>
 
     <div id="alert-box" class="alert alert-error">
@@ -27,24 +71,33 @@
 
         <div class="form-group">
           <label class="form-label" for="admin-pass">Admin Password</label>
-          <input class="form-input" type="password" id="admin-pass" name="password"
-                 placeholder="Enter admin password" autocomplete="current-password" />
+          <div class="form-input-wrap">
+            <span class="input-icon">🔑</span>
+            <input class="form-input" type="password" id="admin-pass" name="password"
+                   placeholder="Enter admin password" autocomplete="current-password" />
+          </div>
           <span class="form-error" id="err-pass"></span>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg w-full" id="submit-btn">
+        <button type="submit" class="btn btn-primary btn-lg w-full" id="submit-btn"
+                style="background:linear-gradient(135deg,#1e3a8a,#3b5bdb);">
           🔐 Access Admin Panel
         </button>
 
       </div>
     </form>
 
-    <p style="text-align:center;font-size:.85rem;margin-top:16px;">
-      <a href="/login/" style="color:var(--text-muted);">← Back to user login</a>
+    <div class="security-notice">
+      <span>🔒</span>
+      <span>Access is logged and monitored. Unauthorized access attempts are reported.</span>
+    </div>
+
+    <p style="text-align:center;font-size:.85rem;margin-top:20px;">
+      <a href="/login/" style="color:var(--text-muted);font-weight:500;">← Back to user login</a>
     </p>
   </div>
 
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/admin-login.js' %}"></script>
+  <script src="{% static 'js/utils.js' %}"></script>
+  <script src="{% static 'js/admin-login.js' %}"></script>
 </body>
 </html>

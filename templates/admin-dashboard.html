@@ -9,25 +9,92 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <style>
+    /* Admin-specific overrides */
+    :root {
+      --admin-primary: #1e3a8a;
+      --admin-accent: #3b5bdb;
+    }
+    .admin-navbar {
+      background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%) !important;
+      border-bottom: 1px solid rgba(255,255,255,.1) !important;
+      box-shadow: 0 4px 24px rgba(15,23,41,.4) !important;
+    }
+    .admin-navbar .navbar-brand { color: #fff !important; }
+    .admin-navbar .nav-link { color: rgba(255,255,255,.7) !important; }
+    .admin-navbar .nav-link:hover,
+    .admin-navbar .nav-link.active {
+      background: rgba(255,255,255,.12) !important;
+      color: #fff !important;
+    }
+    .admin-sidebar {
+      background: #0f172a !important;
+      border-right: 1px solid rgba(255,255,255,.06) !important;
+    }
+    .admin-sidebar .nav-link { color: rgba(255,255,255,.6) !important; }
+    .admin-sidebar .nav-link:hover,
+    .admin-sidebar .nav-link.active {
+      background: rgba(59,91,219,.25) !important;
+      color: #fff !important;
+    }
+    .admin-sidebar .nav-link.active {
+      box-shadow: inset 3px 0 0 #3b5bdb !important;
+    }
+
+    .admin-welcome {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #3b5bdb 100%);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      color: #fff; margin-bottom: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      box-shadow: 0 8px 32px rgba(15,23,41,.4);
+      position: relative; overflow: hidden;
+    }
+    .admin-welcome::before {
+      content: '🏛️';
+      position: absolute; right: 32px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 6rem; opacity: .06;
+    }
+    .admin-welcome h1 { color: #fff; font-size: 1.55rem; }
+    .admin-welcome p { color: rgba(255,255,255,.7); margin-top: 4px; font-size: .9rem; }
+
+    /* Admin stat cards with dark gradient icons */
+    .admin-stat .stat-icon.blue   { background: rgba(59,91,219,.15); box-shadow: none; }
+    .admin-stat .stat-icon.red    { background: rgba(239,68,68,.12); box-shadow: none; }
+    .admin-stat .stat-icon.green  { background: rgba(16,185,129,.12); box-shadow: none; }
+
+    .admin-filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center; margin-bottom: 16px;
+    }
+
+    /* Action buttons in table */
+    .action-btn-group { display: flex; gap: 6px; }
+  </style>
 </head>
 <body>
 
 <!-- Admin Navbar -->
-<nav class="navbar" style="background:linear-gradient(90deg,#1e3a8a,#1d4ed8);">
+<nav class="navbar admin-navbar">
   <div class="navbar-inner">
     <a href="{% url 'admin_dashboard' %}" class="navbar-brand" style="color:#fff;">
-      <div class="brand-icon" style="background:rgba(255,255,255,.2);">🏛️</div>
-      CivicAlert <span style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;margin-left:6px;font-weight:600;">ADMIN</span>
+      <div class="brand-icon" style="background:rgba(255,255,255,.15);backdrop-filter:blur(8px);">🏛️</div>
+      CivicAlert
+      <span class="admin-tag">ADMIN</span>
     </a>
     <div class="navbar-right">
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);" id="admin-logout-btn">Logout</button>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);" id="admin-logout-btn">
+        Logout
+      </button>
     </div>
   </div>
 </nav>
 
 <div class="layout">
   <!-- Admin Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar admin-sidebar">
     <a href="{% url 'admin_dashboard' %}" class="nav-link active"><span class="icon">📊</span> Dashboard</a>
     <a href="#tab-issues" class="nav-link sidebar-tab" data-target="issues"><span class="icon">📋</span> Issues</a>
     <a href="#tab-users"  class="nav-link sidebar-tab" data-target="users"><span class="icon">👤</span> Users</a>
@@ -36,35 +103,43 @@
 
   <main class="main-content">
 
-    <!-- Stats -->
-    <div class="page-header">
-      <h1>Admin Dashboard 🏛️</h1>
-      <p>Platform-wide overview and management.</p>
+    <!-- Welcome -->
+    <div class="admin-welcome">
+      <div style="position:relative;z-index:1;">
+        <h1>Admin Dashboard 🏛️</h1>
+        <p>Platform-wide overview and management.</p>
+      </div>
+      <div style="display:flex;gap:8px;position:relative;z-index:1;">
+        <span style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:rgba(255,255,255,.6);">
+          <span class="pulse-dot"></span> Live
+        </span>
+      </div>
     </div>
 
+    <!-- Stats -->
     <div class="stat-grid">
-      <div class="stat-card">
+      <div class="stat-card admin-stat">
         <div class="stat-icon blue">👤</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-users">—</div>
           <div class="stat-label">Total Users</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card admin-stat">
         <div class="stat-icon blue">📋</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-issues">—</div>
           <div class="stat-label">Total Issues</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card admin-stat">
         <div class="stat-icon red">🔴</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-pending">—</div>
           <div class="stat-label">Pending</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card admin-stat">
         <div class="stat-icon green">✅</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-resolved">—</div>
@@ -83,9 +158,10 @@
 
       <!-- Issues Tab -->
       <div class="tab-content active" id="tab-issues" data-tabs-parent>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-          <input class="form-input" type="search" id="admin-issue-search" placeholder="🔍 Search issues…" style="max-width:240px;" />
-          <select class="form-select" id="admin-issue-status" style="max-width:180px;">
+        <div class="admin-filter-bar">
+          <input class="form-input" type="search" id="admin-issue-search"
+                 placeholder="🔍 Search issues…" style="max-width:240px;margin:0;" />
+          <select class="form-select" id="admin-issue-status" style="max-width:180px;margin:0;">
             <option value="">All Statuses</option>
             <option value="pending">🔴 Pending</option>
             <option value="in_progress">🟡 In Progress</option>
@@ -106,7 +182,9 @@
                 </tr>
               </thead>
               <tbody id="admin-issues-tbody">
-                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+                <tr><td colspan="6">
+                  <div class="empty-state"><div class="empty-icon">⏳</div><p>Loading issues…</p></div>
+                </td></tr>
               </tbody>
             </table>
           </div>
@@ -130,7 +208,9 @@
                 </tr>
               </thead>
               <tbody id="admin-users-tbody">
-                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+                <tr><td colspan="6">
+                  <div class="empty-state"><div class="empty-icon">⏳</div><p>Loading users…</p></div>
+                </td></tr>
               </tbody>
             </table>
           </div>
@@ -140,15 +220,14 @@
 
       <!-- Map Tab -->
       <div class="tab-content" id="tab-map" data-tabs-parent>
-        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
           <div class="badge badge-blue">🔴 = High density</div>
           <div class="badge badge-blue">Clustered markers show hotspots</div>
         </div>
-        <div id="admin-map" style="height:500px;border-radius:var(--radius);border:1px solid var(--border);"></div>
+        <div id="admin-map" style="height:500px;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-md);"></div>
       </div>
 
-    </div><!-- end tabs -->
-
+    </div>
   </main>
 </div>
 
@@ -200,6 +279,7 @@
     </div>
   </div>
 </div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="{% static 'js/utils.js' %}"></script>

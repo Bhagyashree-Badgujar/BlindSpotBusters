@@ -5,12 +5,71 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard — CivicAlert</title>
-
-  <!-- ✅ FIXED CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
-
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    /* Dashboard-specific enhancements */
+    .welcome-banner {
+      background: var(--grad-hero);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+      margin-bottom: 24px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 8px 32px rgba(59,91,219,.35);
+    }
+    .welcome-banner::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 220px; height: 220px; border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .welcome-banner::after {
+      content: '';
+      position: absolute; bottom: -80px; left: 30%;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: rgba(255,255,255,.04);
+    }
+    .welcome-text h1 { color: #fff; font-size: 1.55rem; }
+    .welcome-text p { color: rgba(255,255,255,.75); margin-top: 4px; font-size: .92rem; }
+    .welcome-actions { display: flex; gap: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+    .btn-white {
+      background: rgba(255,255,255,.18);
+      color: #fff; border: 1px solid rgba(255,255,255,.3);
+      backdrop-filter: blur(8px);
+      transition: all .2s;
+    }
+    .btn-white:hover { background: rgba(255,255,255,.28); transform: translateY(-2px); }
+    .btn-white-solid { background: #fff; color: var(--primary); font-weight: 700; }
+    .btn-white-solid:hover { background: rgba(255,255,255,.9); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .section-header h2 { font-size: 1.05rem; }
+
+    /* Quick Action cards */
+    .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .quick-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s cubic-bezier(.34,1.4,.64,1);
+      text-decoration: none; color: var(--text);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      box-shadow: var(--shadow);
+    }
+    .quick-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); text-decoration: none; border-color: var(--primary); }
+    .quick-card:hover .quick-icon { transform: scale(1.15); }
+    .quick-icon { font-size: 1.8rem; transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+    .quick-label { font-size: .82rem; font-weight: 600; }
+  </style>
 </head>
 <body>
 
@@ -21,15 +80,13 @@
       <div class="brand-icon">🏛️</div>
       CivicAlert
     </a>
-
     <div class="navbar-nav" id="main-nav">
       <a href="/dashboard/" class="nav-link active">🏠 Home</a>
       <a href="/submit-issue/" class="nav-link">📋 Submit Issue</a>
       <a href="/my-reports/" class="nav-link">📂 My Reports</a>
     </div>
-
     <div class="navbar-right">
-      <span id="user-greeting" style="font-size:.88rem;color:var(--text-muted);"></span>
+      <span id="user-greeting" style="font-size:.85rem;color:var(--text-muted);font-weight:500;"></span>
       <button class="btn btn-outline btn-sm" id="logout-btn">Logout</button>
       <button class="hamburger" id="hamburger">☰</button>
     </div>
@@ -38,8 +95,6 @@
 
 <!-- ===== Layout ===== -->
 <div class="layout">
-
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <a href="/dashboard/" class="nav-link active"><span class="icon">🏠</span> Home</a>
     <a href="/submit-issue/" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
@@ -47,12 +102,18 @@
     <a href="/map-view/" class="nav-link"><span class="icon">🗺️</span> Map View</a>
   </aside>
 
-  <!-- Main -->
   <main class="main-content">
 
-    <div class="page-header">
-      <h1>Dashboard 📊</h1>
-      <p>Welcome back! Here's a summary of your civic reports.</p>
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <div class="welcome-text" style="position:relative;z-index:1;">
+        <h1>Welcome back! 👋</h1>
+        <p>Here's your civic impact summary.</p>
+      </div>
+      <div class="welcome-actions">
+        <a href="/submit-issue/" class="btn btn-white-solid btn-sm">➕ New Report</a>
+        <a href="/map-view/" class="btn btn-white btn-sm">🗺️ View Map</a>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -64,7 +125,6 @@
           <div class="stat-label">Total Submitted</div>
         </div>
       </div>
-
       <div class="stat-card">
         <div class="stat-icon green">✅</div>
         <div class="stat-info">
@@ -72,7 +132,6 @@
           <div class="stat-label">Resolved</div>
         </div>
       </div>
-
       <div class="stat-card">
         <div class="stat-icon yellow">⏳</div>
         <div class="stat-info">
@@ -80,7 +139,6 @@
           <div class="stat-label">Pending</div>
         </div>
       </div>
-
       <div class="stat-card">
         <div class="stat-icon red">👍</div>
         <div class="stat-info">
@@ -91,8 +149,10 @@
     </div>
 
     <!-- Chart -->
-    <div class="card mt-6" style="padding:20px 24px;">
-      <div class="section-title">📈 Issues by Status</div>
+    <div class="card mt-6" style="padding:24px;">
+      <div class="section-header">
+        <div class="section-title" style="margin:0;">📈 Issues by Status</div>
+      </div>
       <div class="mini-bar-chart" id="mini-chart">
         <div class="bar-col"><div class="bar red" id="bar-pending"></div><div class="bar-label">Pending</div></div>
         <div class="bar-col"><div class="bar yellow" id="bar-progress"></div><div class="bar-label">In Progress</div></div>
@@ -100,10 +160,12 @@
       </div>
     </div>
 
-    <!-- Reports -->
+    <!-- Recent Reports -->
     <div class="card mt-6">
-      <div class="section-title">📂 Recent Reports</div>
-
+      <div class="section-header">
+        <div class="section-title" style="margin:0;">📂 Recent Reports</div>
+        <a href="/my-reports/" class="btn btn-outline btn-sm">View all →</a>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -118,22 +180,24 @@
           </thead>
           <tbody id="reports-tbody">
             <tr>
-              <td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">
-                Loading…
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-icon">⏳</div>
+                  <p>Loading reports…</p>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-
       <div class="pagination" id="reports-pagination"></div>
     </div>
 
     <!-- Map -->
     <div class="card mt-6">
-      <div class="section-title" style="justify-content:space-between;">
-        <span>🗺️ Map Preview</span>
-        <a href="/map-view/" class="btn btn-outline btn-sm">Full Map</a>
+      <div class="section-header">
+        <div class="section-title" style="margin:0;">🗺️ Map Preview</div>
+        <a href="/map-view/" class="btn btn-outline btn-sm">Full Map →</a>
       </div>
       <div id="map" style="height:320px;"></div>
     </div>
@@ -196,12 +260,8 @@
   </div>
 </div>
 
-<!-- ===== JS ===== -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- ✅ FIXED STATIC JS -->
 <script src="{% static 'js/utils.js' %}"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
-
 </body>
 </html>

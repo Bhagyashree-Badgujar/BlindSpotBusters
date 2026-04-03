@@ -5,12 +5,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Reports — CivicAlert</title>
-  <!-- Use Django static for CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    .reports-header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #3b5bdb 100%);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 28px rgba(59,91,219,.3);
+      position: relative; overflow: hidden;
+    }
+    .reports-header-banner::after {
+      content: '📂';
+      position: absolute; right: 28px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 5rem; opacity: .08;
+    }
+    .reports-header-banner h1 { color: #fff; font-size: 1.5rem; }
+    .reports-header-banner p { color: rgba(255,255,255,.75); font-size: .9rem; margin-top: 3px; }
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .filter-bar label { font-size: .82rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+  </style>
 </head>
 <body>
 
-<!-- ===== Navbar ===== -->
 <nav class="navbar">
   <div class="navbar-inner">
     <a href="{% url 'dashboard' %}" class="navbar-brand">
@@ -28,10 +58,7 @@
   </div>
 </nav>
 
-<!-- ===== Layout ===== -->
 <div class="layout">
-
-  <!-- Sidebar -->
   <aside class="sidebar">
     <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Home</a>
     <a href="{% url 'submit_issue' %}" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
@@ -39,20 +66,26 @@
     <a href="{% url 'map_view' %}" class="nav-link"><span class="icon">🗺️</span> Map View</a>
   </aside>
 
-  <!-- Main content -->
   <main class="main-content">
-    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-      <div>
+
+    <!-- Header Banner -->
+    <div class="reports-header-banner">
+      <div style="position:relative;z-index:1;">
         <h1>📂 My Reports</h1>
         <p>All the civic issues you've submitted.</p>
       </div>
-      <a href="{% url 'submit_issue' %}" class="btn btn-primary">➕ New Issue</a>
+      <a href="{% url 'submit_issue' %}" class="btn btn-white-solid btn-sm" style="background:#fff;color:var(--primary);font-weight:700;position:relative;z-index:1;">
+        ➕ New Issue
+      </a>
     </div>
 
-    <!-- Filters -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
-      <input class="form-input" type="search" id="search-input" placeholder="🔍 Search reports…" style="max-width:260px;" />
-      <select class="form-select" id="status-filter" style="max-width:180px;">
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label>Filter:</label>
+      <input class="form-input" type="search" id="search-input"
+             placeholder="🔍 Search reports…"
+             style="max-width:260px;margin:0;" />
+      <select class="form-select" id="status-filter" style="max-width:180px;margin:0;">
         <option value="">All Statuses</option>
         <option value="pending">🔴 Pending</option>
         <option value="in_progress">🟡 In Progress</option>
@@ -76,7 +109,11 @@
             </tr>
           </thead>
           <tbody id="my-reports-tbody">
-            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+            <tr>
+              <td colspan="7">
+                <div class="empty-state"><div class="empty-icon">⏳</div><p>Loading your reports…</p></div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -85,7 +122,7 @@
   </main>
 </div>
 
-<!-- ===== Issue Modal (reuse from dashboard) ===== -->
+<!-- Issue Modal -->
 <div class="modal-overlay" id="issue-modal">
   <div class="modal">
     <div class="modal-header">
@@ -93,7 +130,6 @@
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <!-- Timeline -->
       <div class="timeline" id="modal-timeline">
         <div class="tl-step done" data-step="reported">
           <div class="tl-dot">📅</div><div class="tl-label">Reported</div>
@@ -105,8 +141,6 @@
           <div class="tl-dot">✅</div><div class="tl-label">Resolved</div>
         </div>
       </div>
-
-      <!-- Before/After Images -->
       <div class="img-slider-wrap" id="modal-slider" style="margin:16px 0;">
         <span class="img-slide-label">📸 Before</span>
         <div class="img-slider-track">
@@ -122,32 +156,22 @@
           <div class="img-dot"></div>
         </div>
       </div>
-
       <p id="modal-desc" style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;"></p>
-
-      <!-- Impact Score -->
       <div class="impact-score" id="modal-impact">
         <div>
           <div class="impact-label">⭐ Impact Score</div>
           <div class="impact-number" id="modal-score">0</div>
         </div>
-        <div style="flex:1;font-size:.8rem;color:var(--text-muted);">
-          Score = Votes × 2 + Recent Reports × 3
-        </div>
+        <div style="flex:1;font-size:.8rem;color:var(--text-muted);">Score = Votes × 2 + Recent Reports × 3</div>
       </div>
-
-      <!-- Duplicate Alert -->
       <div class="alert alert-warn mt-4" id="modal-duplicate">
         ⚠️ This issue may be a duplicate of another report in this area.
       </div>
-
-      <!-- Upvote -->
       <div style="margin-top:16px;display:flex;align-items:center;gap:12px;">
         <button class="upvote-btn" id="modal-upvote-btn">
           ⭐ Upvote <span class="count" id="modal-vote-count">0</span>
         </button>
       </div>
-
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline modal-close">Close</button>
@@ -155,10 +179,7 @@
   </div>
 </div>
 
-<!-- ===== Scripts ===== -->
-{% load static %}
 <script src="{% static 'js/utils.js' %}"></script>
 <script src="{% static 'js/my-reports.js' %}"></script>
-
 </body>
 </html>

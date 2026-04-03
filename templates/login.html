@@ -5,12 +5,55 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login — CivicAlert</title>
-
-  <!-- ✅ FIX CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <style>
+    .auth-floating-shapes {
+      position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+    }
+    .shape {
+      position: absolute; border-radius: 50%;
+      background: rgba(255,255,255,.04);
+      animation: floatShape linear infinite;
+    }
+    .shape:nth-child(1) { width:300px;height:300px; top:-100px; left:-80px; animation-duration:18s; }
+    .shape:nth-child(2) { width:200px;height:200px; bottom:10%; right:-60px; animation-duration:22s; animation-delay:-5s; }
+    .shape:nth-child(3) { width:160px;height:160px; bottom:30%; left:10%; animation-duration:16s; animation-delay:-10s; }
+    @keyframes floatShape {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-30px) rotate(180deg); }
+    }
+    .auth-card { position: relative; z-index: 1; }
+    .form-input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 1rem; pointer-events: none; z-index: 1;
+    }
+    .form-input-wrap .form-input { padding-left: 42px; }
+    .brand-tagline {
+      font-size: .75rem;
+      color: var(--text-light);
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .feature-pills {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 20px; justify-content: center;
+    }
+    .feature-pill {
+      font-size: .72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 99px;
+      background: var(--primary-lt); color: var(--primary);
+      border: 1px solid rgba(59,91,219,.15);
+    }
+  </style>
 </head>
-
 <body class="auth-page">
+  <div class="auth-floating-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
 
   <div class="auth-card">
     <div class="auth-logo">
@@ -26,19 +69,25 @@
     </div>
 
     <form id="login-form" novalidate>
-      <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;flex-direction:column;gap:18px;">
 
         <div class="form-group">
           <label class="form-label" for="username">Username or Email</label>
-          <input class="form-input" type="text" id="username" name="username"
-                 placeholder="john_doe or you@example.com" autocomplete="username" />
+          <div class="form-input-wrap">
+            <span class="input-icon">👤</span>
+            <input class="form-input" type="text" id="username" name="username"
+                   placeholder="john_doe or you@example.com" autocomplete="username" />
+          </div>
           <span class="form-error" id="err-username"></span>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
-          <input class="form-input" type="password" id="password" name="password"
-                 placeholder="Your password" autocomplete="current-password" />
+          <div class="form-input-wrap">
+            <span class="input-icon">🔑</span>
+            <input class="form-input" type="password" id="password" name="password"
+                   placeholder="Your password" autocomplete="current-password" />
+          </div>
           <span class="form-error" id="err-password"></span>
         </div>
 
@@ -47,33 +96,34 @@
             <input type="checkbox" id="remember-me" name="remember_me" />
             Remember me
           </label>
-          <a href="#" style="font-size:.88rem;">Forgot password?</a>
+          <a href="#" style="font-size:.88rem;color:var(--primary);font-weight:500;">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg w-full" id="submit-btn">
-          Sign In
+          Sign In →
         </button>
 
       </div>
     </form>
 
+    <div class="feature-pills">
+      <span class="feature-pill">📍 Geo Reports</span>
+      <span class="feature-pill">📊 Analytics</span>
+      <span class="feature-pill">🗺️ Live Map</span>
+    </div>
+
     <div class="auth-divider">or</div>
 
-    <!-- ✅ FIX LINKS -->
     <p style="text-align:center;font-size:.9rem;">
-      New to CivicAlert? <a href="/register/">Create account →</a>
+      New to CivicAlert? <a href="/register/" style="font-weight:700;">Create account →</a>
     </p>
 
-    <p style="text-align:center;font-size:.82rem;margin-top:12px;">
-      <a href="/admin-login/" style="color:var(--text-muted);">Admin login →</a>
+    <p class="brand-tagline">
+      <a href="/admin-login/" style="color:var(--text-light);font-size:.8rem;">Admin access →</a>
     </p>
   </div>
 
-  <!-- ❌ REMOVE duplicate {% load static %} from here -->
-
-  <!-- ✅ JS (already correct) -->
   <script src="{% static 'js/utils.js' %}"></script>
   <script src="{% static 'js/login.js' %}"></script>
-
 </body>
 </html>
