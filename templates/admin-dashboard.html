@@ -1,0 +1,208 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — CivicAlert</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+</head>
+<body>
+
+<!-- Admin Navbar -->
+<nav class="navbar" style="background:linear-gradient(90deg,#1e3a8a,#1d4ed8);">
+  <div class="navbar-inner">
+    <a href="{% url 'admin_dashboard' %}" class="navbar-brand" style="color:#fff;">
+      <div class="brand-icon" style="background:rgba(255,255,255,.2);">🏛️</div>
+      CivicAlert <span style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;margin-left:6px;font-weight:600;">ADMIN</span>
+    </a>
+    <div class="navbar-right">
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);" id="admin-logout-btn">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <!-- Admin Sidebar -->
+  <aside class="sidebar">
+    <a href="{% url 'admin_dashboard' %}" class="nav-link active"><span class="icon">📊</span> Dashboard</a>
+    <a href="#tab-issues" class="nav-link sidebar-tab" data-target="issues"><span class="icon">📋</span> Issues</a>
+    <a href="#tab-users"  class="nav-link sidebar-tab" data-target="users"><span class="icon">👤</span> Users</a>
+    <a href="#tab-map"    class="nav-link sidebar-tab" data-target="map"><span class="icon">🗺️</span> Map</a>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- Stats -->
+    <div class="page-header">
+      <h1>Admin Dashboard 🏛️</h1>
+      <p>Platform-wide overview and management.</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">👤</div>
+        <div class="stat-info">
+          <div class="stat-value" id="admin-stat-users">—</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">📋</div>
+        <div class="stat-info">
+          <div class="stat-value" id="admin-stat-issues">—</div>
+          <div class="stat-label">Total Issues</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">🔴</div>
+        <div class="stat-info">
+          <div class="stat-value" id="admin-stat-pending">—</div>
+          <div class="stat-label">Pending</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+          <div class="stat-value" id="admin-stat-resolved">—</div>
+          <div class="stat-label">Resolved</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="margin-top:28px;">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="issues">📋 Issues</button>
+        <button class="tab-btn" data-tab="users">👤 Users</button>
+        <button class="tab-btn" data-tab="map">🗺️ Hotspot Map</button>
+      </div>
+
+      <!-- Issues Tab -->
+      <div class="tab-content active" id="tab-issues" data-tabs-parent>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+          <input class="form-input" type="search" id="admin-issue-search" placeholder="🔍 Search issues…" style="max-width:240px;" />
+          <select class="form-select" id="admin-issue-status" style="max-width:180px;">
+            <option value="">All Statuses</option>
+            <option value="pending">🔴 Pending</option>
+            <option value="in_progress">🟡 In Progress</option>
+            <option value="resolved">🟢 Resolved</option>
+          </select>
+        </div>
+        <div class="card" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>User</th>
+                  <th>👍 Votes</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-issues-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="admin-issues-pagination" style="padding:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div class="tab-content" id="tab-users" data-tabs-parent>
+        <div class="card" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Issues</th>
+                  <th>Last Login</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="admin-users-pagination" style="padding:12px;"></div>
+        </div>
+      </div>
+
+      <!-- Map Tab -->
+      <div class="tab-content" id="tab-map" data-tabs-parent>
+        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="badge badge-blue">🔴 = High density</div>
+          <div class="badge badge-blue">Clustered markers show hotspots</div>
+        </div>
+        <div id="admin-map" style="height:500px;border-radius:var(--radius);border:1px solid var(--border);"></div>
+      </div>
+
+    </div><!-- end tabs -->
+
+  </main>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal-overlay" id="status-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Change Issue Status</div>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;" id="status-modal-issue-title"></p>
+      <div class="form-group">
+        <label class="form-label">New Status</label>
+        <select class="form-select" id="new-status-select">
+          <option value="pending">🔴 Pending</option>
+          <option value="in_progress">🟡 In Progress</option>
+          <option value="resolved">🟢 Resolved</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline modal-close">Cancel</button>
+      <button class="btn btn-primary" id="confirm-status-btn">Update Status</button>
+    </div>
+  </div>
+</div>
+
+<!-- After Image Upload Modal -->
+<div class="modal-overlay" id="after-img-modal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">📸 Upload After Image</div>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px;" id="after-img-issue-title"></p>
+      <div class="file-upload-area" id="after-upload-area">
+        <input type="file" id="after-img-file" accept="image/*" />
+        <div class="file-upload-icon">📸</div>
+        <div style="font-weight:600;margin-bottom:4px;">Click or drag to upload</div>
+        <div class="form-hint">After image showing resolution</div>
+        <div class="file-preview"><img src="" alt="After preview" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline modal-close">Cancel</button>
+      <button class="btn btn-accent" id="confirm-after-img-btn">Upload Image</button>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/admin-dashboard.js' %}"></script>
+</body>
+</html>

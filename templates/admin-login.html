@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — CivicAlert</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body class="auth-page">
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="icon">🔐</div>
+      <div>
+        <h2>Admin Access</h2>
+        <p>CivicAlert Administration</p>
+      </div>
+    </div>
+
+    <div id="alert-box" class="alert alert-error">
+      <span>⚠️</span><span id="alert-msg"></span>
+    </div>
+
+    <form id="admin-login-form" novalidate>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <div class="form-group">
+          <label class="form-label" for="admin-pass">Admin Password</label>
+          <input class="form-input" type="password" id="admin-pass" name="password"
+                 placeholder="Enter admin password" autocomplete="current-password" />
+          <span class="form-error" id="err-pass"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-full" id="submit-btn">
+          🔐 Access Admin Panel
+        </button>
+
+      </div>
+    </form>
+
+    <p style="text-align:center;font-size:.85rem;margin-top:16px;">
+      <a href="/login/" style="color:var(--text-muted);">← Back to user login</a>
+    </p>
+  </div>
+
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/admin-login.js' %}"></script>
+</body>
+</html>

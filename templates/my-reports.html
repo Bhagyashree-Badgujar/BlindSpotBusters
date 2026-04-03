@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Reports — CivicAlert</title>
+  <!-- Use Django static for CSS -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+
+<!-- ===== Navbar ===== -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="{% url 'dashboard' %}" class="navbar-brand">
+      <div class="brand-icon">🏛️</div>
+      CivicAlert
+    </a>
+    <div class="navbar-nav">
+      <a href="{% url 'dashboard' %}" class="nav-link">🏠 Home</a>
+      <a href="{% url 'submit_issue' %}" class="nav-link">📋 Submit Issue</a>
+      <a href="{% url 'my_reports' %}" class="nav-link active">📂 My Reports</a>
+    </div>
+    <div class="navbar-right">
+      <button class="btn btn-outline btn-sm" id="logout-btn">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== Layout ===== -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Home</a>
+    <a href="{% url 'submit_issue' %}" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
+    <a href="{% url 'my_reports' %}" class="nav-link active"><span class="icon">📂</span> My Reports</a>
+    <a href="{% url 'map_view' %}" class="nav-link"><span class="icon">🗺️</span> Map View</a>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1>📂 My Reports</h1>
+        <p>All the civic issues you've submitted.</p>
+      </div>
+      <a href="{% url 'submit_issue' %}" class="btn btn-primary">➕ New Issue</a>
+    </div>
+
+    <!-- Filters -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;">
+      <input class="form-input" type="search" id="search-input" placeholder="🔍 Search reports…" style="max-width:260px;" />
+      <select class="form-select" id="status-filter" style="max-width:180px;">
+        <option value="">All Statuses</option>
+        <option value="pending">🔴 Pending</option>
+        <option value="in_progress">🟡 In Progress</option>
+        <option value="resolved">🟢 Resolved</option>
+      </select>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="card" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>👍 Upvotes</th>
+              <th>⭐ Impact</th>
+              <th>Submitted</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="my-reports-tbody">
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="my-pagination" style="padding:12px;"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Issue Modal (reuse from dashboard) ===== -->
+<div class="modal-overlay" id="issue-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Issue Details</div>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Timeline -->
+      <div class="timeline" id="modal-timeline">
+        <div class="tl-step done" data-step="reported">
+          <div class="tl-dot">📅</div><div class="tl-label">Reported</div>
+        </div>
+        <div class="tl-step" data-step="in_progress">
+          <div class="tl-dot">🔧</div><div class="tl-label">In Progress</div>
+        </div>
+        <div class="tl-step" data-step="resolved">
+          <div class="tl-dot">✅</div><div class="tl-label">Resolved</div>
+        </div>
+      </div>
+
+      <!-- Before/After Images -->
+      <div class="img-slider-wrap" id="modal-slider" style="margin:16px 0;">
+        <span class="img-slide-label">📸 Before</span>
+        <div class="img-slider-track">
+          <div class="img-slide">
+            <img src="https://placehold.co/640x220?text=Before+Image" id="modal-before-img" alt="Before" />
+          </div>
+          <div class="img-slide">
+            <img src="https://placehold.co/640x220?text=After+Image" id="modal-after-img" alt="After" />
+          </div>
+        </div>
+        <div class="img-nav">
+          <div class="img-dot active"></div>
+          <div class="img-dot"></div>
+        </div>
+      </div>
+
+      <p id="modal-desc" style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;"></p>
+
+      <!-- Impact Score -->
+      <div class="impact-score" id="modal-impact">
+        <div>
+          <div class="impact-label">⭐ Impact Score</div>
+          <div class="impact-number" id="modal-score">0</div>
+        </div>
+        <div style="flex:1;font-size:.8rem;color:var(--text-muted);">
+          Score = Votes × 2 + Recent Reports × 3
+        </div>
+      </div>
+
+      <!-- Duplicate Alert -->
+      <div class="alert alert-warn mt-4" id="modal-duplicate">
+        ⚠️ This issue may be a duplicate of another report in this area.
+      </div>
+
+      <!-- Upvote -->
+      <div style="margin-top:16px;display:flex;align-items:center;gap:12px;">
+        <button class="upvote-btn" id="modal-upvote-btn">
+          ⭐ Upvote <span class="count" id="modal-vote-count">0</span>
+        </button>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline modal-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scripts ===== -->
+{% load static %}
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/my-reports.js' %}"></script>
+
+</body>
+</html>
