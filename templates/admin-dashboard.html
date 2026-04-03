@@ -76,8 +76,16 @@
         <div class="chart-wrap"><canvas id="admin-chart-status" aria-label="Status chart"></canvas></div>
       </div>
       <div class="card tilt-hover" style="padding:20px 24px;">
-        <div class="section-title">Category load</div>
-        <div class="chart-wrap"><canvas id="admin-chart-category" aria-label="Category chart"></canvas></div>
+        <div class="section-title">Verification mix</div>
+        <div class="chart-wrap"><canvas id="admin-chart-verification" aria-label="Verification chart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card mt-6 tilt-hover" style="padding:20px 24px;">
+      <div class="section-title">Points statistics</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <span class="badge badge-blue">Total points: <span id="admin-total-points">—</span></span>
+        <span class="badge badge-blue">Highest citizen points: <span id="admin-max-points">—</span></span>
       </div>
     </div>
 
@@ -107,6 +115,7 @@
                   <th>Title</th>
                   <th>Cat</th>
                   <th>Pri</th>
+                  <th>Verify</th>
                   <th>Impact</th>
                   <th>User</th>
                   <th>Votes</th>
@@ -115,7 +124,7 @@
                 </tr>
               </thead>
               <tbody id="admin-issues-tbody">
-                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
               </tbody>
             </table>
           </div>

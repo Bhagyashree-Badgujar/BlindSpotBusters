@@ -10,7 +10,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 
 from issues.models import Issue
-from users.models import UserProfile
+from users.models import Certificate, UserProfile
 
 
 def home(request):
@@ -82,6 +82,15 @@ def map_view_page(request):
     if request.user.is_authenticated and request.user.is_staff:
         return redirect('admin_dashboard')
     return render(request, 'map-view.html')
+
+
+@login_required(login_url='/login/')
+def certificate_view(request, id):
+    try:
+        cert = Certificate.objects.select_related('user').get(pk=id, user=request.user)
+    except Certificate.DoesNotExist:
+        return redirect('dashboard')
+    return render(request, 'certificate.html', {'cert': cert})
 
 
 @csrf_exempt

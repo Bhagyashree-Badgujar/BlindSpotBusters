@@ -27,6 +27,8 @@ SECRET_KEY = 'django-insecure-enpl#i0#monl+dalmeavq0xb7=s)68-2tuq%)%nd6uw*eswpe0
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+if os.environ.get('DJANGO_ALLOW_TESTSERVER', '').lower() in ('1', 'true', 'yes'):
+    ALLOWED_HOSTS.append('testserver')
 
 # Single shared password for /admin-login/ (change in production; create staff via createsuperuser)
 ADMIN_PANEL_PASSWORD = 'MyTestPassword123'
@@ -79,12 +81,52 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+def _db_from_env(url):
+    """
+    Minimal DATABASE_URL support (no new dependencies).
+    Supported:
+      - sqlite:///relative/path.db
+      - postgres://user:pass@host:5432/dbname
+      - postgresql://user:pass@host:5432/dbname
+    """
+    if not url:
+        return None
+    try:
+        from urllib.parse import urlparse
+
+        p = urlparse(url)
+        if p.scheme in ('sqlite',):
+            name = (p.path or '').lstrip('/') or 'db.sqlite3'
+            return {'ENGINE': 'django.db.backends.sqlite3', 'NAME': str(BASE_DIR / name)}
+        if p.scheme in ('postgres', 'postgresql'):
+            return {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': (p.path or '').lstrip('/'),
+                'USER': p.username or '',
+                'PASSWORD': p.password or '',
+                'HOST': p.hostname or '',
+                'PORT': str(p.port or ''),
+            }
+    except Exception:
+        return None
+    return None
+
+
 DATABASES = {
-    'default': {
+    'default': _db_from_env(os.environ.get('DATABASE_URL'))
+    or {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() in ('1', 'true', 'yes')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'CivicLens <no-reply@civiclens.local>')
 
 
 # Password validation

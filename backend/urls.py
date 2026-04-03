@@ -29,6 +29,7 @@ urlpatterns = [
     path('admin-login/', user_views.admin_login_page, name='admin_login_page'),
     path('admin-dashboard/', user_views.admin_dashboard_page, name='admin_dashboard'),
     path('map-view/', user_views.map_view_page, name='map_view'),
+    path('certificates/<int:id>/', user_views.certificate_view, name='certificate_view'),
 
     path('api/login/', user_views.login_user),
     path('api/logout/', user_views.logout_user),
@@ -37,9 +38,9 @@ urlpatterns = [
     path('api/user/stats/', issue_views.user_stats),
     path('api/public/stats/', issue_views.public_stats),
     path('api/issues/meta/', issue_views.issues_meta),
-    path('api/leaderboard/', issue_views.leaderboard),
     path('api/issues/nearby/', issue_views.issues_nearby),
     path('api/issues/suggest-category/', issue_views.suggest_category),
+    path('api/issues/<int:id>/verify/', issue_views.verify_issue),
 
     path('api/issues/', issue_views.user_issues),
     path('api/issues/<int:id>/', issue_views.issue_detail),

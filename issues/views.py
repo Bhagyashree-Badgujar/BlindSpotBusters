@@ -1,14 +1,16 @@
 import json
 
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models import Count, F, Max
+from django.db.models import Count, F, Max, Sum
 from django.http import JsonResponse
+from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from users.models import UserProfile
+from users.models import Certificate, UserProfile
 
-from .models import Issue, IssueMedia, IssueVote
+from .models import Issue, IssueMedia, IssueVerification, IssueVote
 
 
 def api_login_required(view):
@@ -102,6 +104,27 @@ def _issue_dict(issue, request):
     score = (issue.votes * 2) + (rr * 3)
     trending = score >= 18
 
+    user_verification = ''
+    if request.user.is_authenticated:
+        uv = (
+            IssueVerification.objects.filter(user=request.user, issue=issue)
+            .values_list('choice', flat=True)
+            .first()
+        )
+        user_verification = uv or ''
+
+    v_confirm = int(issue.verified_confirm_count or 0)
+    v_dispute = int(issue.verified_dispute_count or 0)
+    v_state = issue.verification_state or 'unverified'
+
+    v_label = 'Unverified'
+    if v_state == 'verified':
+        v_label = f'Verified by {v_confirm} users'
+    elif v_state == 'disputed':
+        v_label = 'Disputed ⚠️'
+    elif v_confirm or v_dispute:
+        v_label = f'Crowd votes: {v_confirm} confirm / {v_dispute} dispute'
+
     return {
         'id': issue.id,
         'title': issue.title,
@@ -124,8 +147,113 @@ def _issue_dict(issue, request):
         'user': issue.user.username if issue.user_id else '',
         'user_id': issue.user_id,
         'user_voted': user_voted,
+        'user_verification': user_verification,
+        'verified_confirm_count': v_confirm,
+        'verified_dispute_count': v_dispute,
+        'verification_state': v_state,
+        'verification_label': v_label,
         'is_duplicate': False,
     }
+
+
+def _safe_send_mail(subject, message, to_email):
+    if not to_email:
+        return
+    try:
+        send_mail(
+            subject,
+            message,
+            getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'no-reply@civiclens.local',
+            [to_email],
+            fail_silently=True,
+        )
+    except Exception:
+        return
+
+
+def _recompute_verification(issue):
+    counts = (
+        IssueVerification.objects.filter(issue=issue)
+        .values('choice')
+        .annotate(c=Count('id'))
+    )
+    confirm = 0
+    dispute = 0
+    for row in counts:
+        if row['choice'] == 'confirm':
+            confirm = row['c']
+        elif row['choice'] == 'dispute':
+            dispute = row['c']
+
+    state = 'unverified'
+    # Simple majority rules
+    if confirm >= 3 and confirm > dispute:
+        state = 'verified'
+    elif (dispute >= 2 and dispute >= confirm) or (confirm and dispute and confirm == dispute):
+        state = 'disputed'
+
+    Issue.objects.filter(pk=issue.pk).update(
+        verified_confirm_count=confirm,
+        verified_dispute_count=dispute,
+        verification_state=state,
+    )
+    issue.refresh_from_db(
+        fields=['verified_confirm_count', 'verified_dispute_count', 'verification_state', 'verification_points_awarded']
+    )
+    return state, confirm, dispute
+
+
+def _maybe_award_verification_points_and_certificate(issue):
+    """
+    Awards points + certificates to the REPORTER when a resolved issue becomes crowd-verified.
+    """
+    if issue.status != 'resolved':
+        return
+    if not issue.user_id:
+        return
+    if issue.verification_state != 'verified':
+        return
+    if issue.verification_points_awarded:
+        return
+
+    profile, _ = UserProfile.objects.get_or_create(user=issue.user)
+    profile.civic_points += 60
+    badges = list(profile.badges or [])
+    if 'verified_resolution' not in badges:
+        badges.append('verified_resolution')
+    profile.badges = badges
+    profile.save(update_fields=['civic_points', 'badges'])
+
+    Issue.objects.filter(pk=issue.pk).update(verification_points_awarded=True)
+    issue.refresh_from_db(fields=['verification_points_awarded'])
+
+    issued = []
+    # Milestones
+    if profile.civic_points >= 100:
+        cert, created = Certificate.objects.get_or_create(
+            user=issue.user,
+            cert_type='active_citizen',
+            defaults={'points_at_issue': profile.civic_points},
+        )
+        if created:
+            issued.append(cert)
+    if profile.civic_points >= 250:
+        cert, created = Certificate.objects.get_or_create(
+            user=issue.user,
+            cert_type='city_contributor',
+            defaults={'points_at_issue': profile.civic_points},
+        )
+        if created:
+            issued.append(cert)
+
+    if issued and issue.user.email:
+        names = ', '.join(dict(Certificate.CERT_CHOICES).get(c.cert_type, c.cert_type) for c in issued)
+        _safe_send_mail(
+            'CivicLens: Certificate issued',
+            f'Congratulations {issue.user.username}.\n\nYou have been issued: {names}.\n\nLogin to CivicLens to view and download your certificate.',
+            issue.user.email,
+        )
+
 
 
 def user_issues(request):
@@ -342,6 +470,11 @@ def user_stats(request):
             'civic_points': profile.civic_points,
             'badges': profile.badges or [],
             'by_category': by_cat,
+            'certificates': list(
+                Certificate.objects.filter(user=user)
+                .order_by('issued_at')
+                .values('id', 'cert_type', 'points_at_issue', 'issued_at')
+            ),
         }
     )
 
@@ -362,26 +495,67 @@ def issues_meta(request):
             'count': agg['c'] or 0,
             'pending': Issue.objects.filter(status='pending').count(),
             'resolved': Issue.objects.filter(status='resolved').count(),
+            'verified': Issue.objects.filter(verification_state='verified').count(),
+            'disputed': Issue.objects.filter(verification_state='disputed').count(),
         }
     )
 
+@csrf_exempt
+@api_login_required
+@require_http_methods(['POST'])
+def verify_issue(request, id):
+    """
+    Crowd verification for resolved issues:
+      - confirm: 👍 Confirm resolved
+      - dispute: ❌ Still not fixed
+    """
+    try:
+        issue = Issue.objects.select_related('user').get(pk=id)
+    except Issue.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
 
-def leaderboard(request):
-    rows = (
-        UserProfile.objects.select_related('user')
-        .filter(user__is_staff=False)
-        .order_by('-civic_points')[:30]
+    if issue.status != 'resolved':
+        return JsonResponse({'error': 'Verification is available only for resolved issues'}, status=400)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    choice = (data.get('choice') or '').strip()
+    if choice not in ('confirm', 'dispute'):
+        return JsonResponse({'error': 'Invalid choice'}, status=400)
+
+    # One vote per user; allow change
+    obj, created = IssueVerification.objects.get_or_create(
+        user=request.user,
+        issue=issue,
+        defaults={'choice': choice},
     )
+    if not created and obj.choice != choice:
+        obj.choice = choice
+        obj.save(update_fields=['choice'])
+
+    state, confirm, dispute = _recompute_verification(issue)
+    _maybe_award_verification_points_and_certificate(issue)
+
+    label = 'Unverified'
+    if state == 'verified':
+        label = f'Verified by {confirm} users'
+    elif state == 'disputed':
+        label = 'Disputed ⚠️'
+    elif confirm or dispute:
+        label = f'Crowd votes: {confirm} confirm / {dispute} dispute'
+
     return JsonResponse(
-        [
-            {
-                'username': p.user.username,
-                'points': p.civic_points,
-                'badges': p.badges or [],
-            }
-            for p in rows
-        ],
-        safe=False,
+        {
+            'status': 'ok',
+            'verification_state': state,
+            'verified_confirm_count': confirm,
+            'verified_dispute_count': dispute,
+            'verification_label': label,
+            'user_verification': choice,
+        }
     )
 
 
@@ -395,6 +569,13 @@ def admin_stats(request):
     by_category = list(Issue.objects.values('category').annotate(count=Count('id')).order_by('-count'))
     by_priority = list(Issue.objects.values('priority').annotate(count=Count('id')).order_by('-count'))
     by_status = list(Issue.objects.values('status').annotate(count=Count('id')))
+    by_verification = list(
+        Issue.objects.values('verification_state').annotate(count=Count('id')).order_by('-count')
+    )
+    points = UserProfile.objects.filter(user__is_staff=False).aggregate(
+        max_points=Max('civic_points'),
+        total_points=Sum('civic_points'),
+    )
     return JsonResponse(
         {
             'users': User.objects.filter(is_staff=False).count(),
@@ -402,9 +583,14 @@ def admin_stats(request):
             'pending': Issue.objects.filter(status='pending').count(),
             'resolved': Issue.objects.filter(status='resolved').count(),
             'in_progress': Issue.objects.filter(status='in_progress').count(),
+            'verified': Issue.objects.filter(verification_state='verified').count(),
+            'disputed': Issue.objects.filter(verification_state='disputed').count(),
             'by_category': by_category,
             'by_priority': by_priority,
             'by_status': by_status,
+            'by_verification': by_verification,
+            'max_points': points.get('max_points') or 0,
+            'total_points': points.get('total_points') or 0,
         }
     )
 
@@ -433,6 +619,7 @@ def admin_issue_update(request, id):
     try:
         data = json.loads(request.body or '{}')
         issue = Issue.objects.get(id=id)
+        prev_status = issue.status
         fields = []
         st = data.get('status')
         if st in ('pending', 'in_progress', 'resolved'):
@@ -447,6 +634,14 @@ def admin_issue_update(request, id):
             fields.append('priority')
         if fields:
             issue.save(update_fields=fields)
+        if prev_status != issue.status and issue.status == 'resolved':
+            # notify reporter
+            if issue.user_id and issue.user.email:
+                _safe_send_mail(
+                    'CivicLens: Your issue is marked resolved',
+                    f'Hello {issue.user.username},\n\nYour reported issue \"{issue.title}\" has been marked as RESOLVED by the department.\n\nYou can now crowd-verify it in CivicLens using: Confirm resolved / Still not fixed.\n',
+                    issue.user.email,
+                )
         return JsonResponse({'status': 'updated'})
     except Issue.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
