@@ -305,22 +305,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       document.getElementById('modal-duplicate')?.classList.toggle('show', !!issue.is_duplicate);
 
+      const closed = !!issue.workflow_fully_closed;
+      document.getElementById('modal-closed-note')?.classList.toggle('hidden', !closed);
+
       const upvoteBtn = document.getElementById('modal-upvote-btn');
       upvoteBtn.classList.toggle('voted', !!issue.user_voted);
-      upvoteBtn.disabled = !!issue.user_voted;
+      upvoteBtn.disabled = !!issue.user_voted || closed;
 
       const verifyLabel = document.getElementById('verify-label');
       if (verifyLabel) verifyLabel.textContent = issue.verification_label || '—';
-      const vOk = issue.status === 'resolved';
+      const vOk = issue.status === 'resolved' && !closed;
       const btnC = document.getElementById('verify-confirm-btn');
       const btnD = document.getElementById('verify-dispute-btn');
       if (btnC) {
-        btnC.disabled = !vOk || issue.user_verification === 'confirm';
+        btnC.disabled = !vOk || issue.user_verification === 'confirm' || closed;
         btnC.classList.toggle('voted', issue.user_verification === 'confirm');
       }
       if (btnD) {
-        btnD.disabled = !vOk || issue.user_verification === 'dispute';
+        btnD.disabled = !vOk || issue.user_verification === 'dispute' || closed;
         btnD.classList.toggle('voted', issue.user_verification === 'dispute');
+      }
+
+      const pdfL = document.getElementById('modal-pdf-link');
+      if (pdfL) {
+        if (issue.is_owner) {
+          pdfL.href = '/reports/' + id + '/pdf/';
+          pdfL.classList.remove('hidden');
+        } else {
+          pdfL.classList.add('hidden');
+        }
       }
 
       Modal.open('issue-modal');

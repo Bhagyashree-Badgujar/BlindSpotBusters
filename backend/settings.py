@@ -20,18 +20,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-enpl#i0#monl+dalmeavq0xb7=s)68-2tuq%)%nd6uw*eswpe0'
+# SECURITY WARNING: set DJANGO_SECRET_KEY in production (see env.example).
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-enpl#i0#monl+dalmeavq0xb7=s)68-2tuq%)%nd6uw*eswpe0',
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 if os.environ.get('DJANGO_ALLOW_TESTSERVER', '').lower() in ('1', 'true', 'yes'):
     ALLOWED_HOSTS.append('testserver')
 
-# Single shared password for /admin-login/ (change in production; create staff via createsuperuser)
-ADMIN_PANEL_PASSWORD = 'MyTestPassword123'
+# Custom admin panel password for /admin-login/ — set CIVICLENS_ADMIN_PASSWORD in production.
+ADMIN_PANEL_PASSWORD = os.environ.get('CIVICLENS_ADMIN_PASSWORD', 'MyTestPassword123')
 
 
 # Application definition

@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('admin-stat-issues').textContent = data.issues ?? 0;
       document.getElementById('admin-stat-pending').textContent = data.pending ?? 0;
       document.getElementById('admin-stat-resolved').textContent = data.resolved ?? 0;
+      const vEl = document.getElementById('admin-stat-verified');
+      const dEl = document.getElementById('admin-stat-disputed');
+      if (vEl) vEl.textContent = data.verified ?? 0;
+      if (dEl) dEl.textContent = data.disputed ?? 0;
       document.getElementById('admin-total-points').textContent = data.total_points ?? 0;
       document.getElementById('admin-max-points').textContent = data.max_points ?? 0;
 
@@ -62,6 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         ];
         const colors = ['#f97316', '#eab308', '#38bdf8', '#22c55e', '#a855f7'];
         const sum = values.reduce((a, b) => a + b, 0);
+        const chartBorder =
+          getComputedStyle(document.documentElement).getPropertyValue('--border').trim() ||
+          'rgba(148,163,184,.35)';
         if (chartDonutMain) chartDonutMain.destroy();
         chartDonutMain = new Chart(ctx, {
           type: 'doughnut',
@@ -72,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 data: sum ? values : [1],
                 backgroundColor: sum ? colors : ['#cbd5e1'],
                 borderWidth: 2,
-                borderColor: 'rgba(255,255,255,.85)',
+                borderColor: chartBorder,
                 hoverOffset: 8,
               },
             ],
@@ -117,7 +124,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     filterIssues();
   }
 
-  const CAT_RANK = { water: 5, potholes: 4, garbage: 3, streetlight: 2, others: 1 };
+  /* Matches backend CAT_DOMAIN_ORDER: Water > Potholes > Garbage > Others (streetlight with low tier) */
+  const CAT_RANK = { water: 4, potholes: 3, garbage: 2, streetlight: 1, others: 1 };
 
   function sortIssuesClient(arr) {
     return [...arr].sort((a, b) => {
@@ -131,17 +139,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   function filterIssues() {
     const q = (document.getElementById('admin-issue-search')?.value || '').toLowerCase();
     const s = document.getElementById('admin-issue-status')?.value || '';
+    const v = document.getElementById('admin-issue-verify')?.value || '';
     const filtered = sortIssuesClient(
-      allIssues.filter(
-        (i) =>
-          (!q || i.title.toLowerCase().includes(q) || String(i.id).includes(q)) && (!s || i.status === s)
-      )
+      allIssues.filter((i) => {
+        const vstate = (i.verification_state || 'unverified').toLowerCase();
+        const matchQ = !q || i.title.toLowerCase().includes(q) || String(i.id).includes(q);
+        const matchS = !s || i.status === s;
+        const matchV = !v || vstate === v;
+        return matchQ && matchS && matchV;
+      })
     );
     renderIssuesTable(filtered, 1);
   }
 
   document.getElementById('admin-issue-search')?.addEventListener('input', filterIssues);
   document.getElementById('admin-issue-status')?.addEventListener('change', filterIssues);
+  document.getElementById('admin-issue-verify')?.addEventListener('change', filterIssues);
 
   function priBadge(p) {
     if (p === 'high') return '<span class="badge badge-priority-high">HIGH</span>';

@@ -38,25 +38,25 @@
 }
 
 [data-theme='light'] {
-  --bg: #eef2f7;
-  --bg-elevated: #f8fafc;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-2: #e8edf4;
-  --border: rgba(15, 23, 42, 0.12);
-  --text: #0f172a;
-  --text-muted: #475569;
-  --primary: #0284c7;
-  --primary-dk: #0369a1;
-  --primary-lt: rgba(2, 132, 199, 0.1);
-  --accent: #059669;
-  --accent-lt: rgba(5, 150, 105, 0.1);
-  --warn: #d97706;
-  --warn-lt: rgba(217, 119, 6, 0.12);
-  --danger: #dc2626;
-  --danger-lt: rgba(220, 38, 38, 0.1);
-  --shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 16px 40px rgba(15, 23, 42, 0.12);
-  --shadow-lg: 0 28px 64px rgba(15, 23, 42, 0.16);
+  --bg: #dce2eb;
+  --bg-elevated: #e8edf5;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-2: #d8dee9;
+  --border: rgba(15, 23, 42, 0.18);
+  --text: #0c1220;
+  --text-muted: #3d4a5c;
+  --primary: #0369a1;
+  --primary-dk: #075985;
+  --primary-lt: rgba(3, 105, 161, 0.14);
+  --accent: #047857;
+  --accent-lt: rgba(4, 120, 87, 0.14);
+  --warn: #b45309;
+  --warn-lt: rgba(180, 83, 9, 0.14);
+  --danger: #b91c1c;
+  --danger-lt: rgba(185, 28, 28, 0.12);
+  --shadow: 0 6px 24px rgba(15, 23, 42, 0.1);
+  --shadow-md: 0 16px 40px rgba(15, 23, 42, 0.14);
+  --shadow-lg: 0 28px 64px rgba(15, 23, 42, 0.2);
   --glass: blur(16px);
 }
 
@@ -87,8 +87,8 @@ body {
 
 [data-theme='light'] body {
   background-image:
-    radial-gradient(1200px 600px at 15% -10%, rgba(2, 132, 199, 0.10), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, rgba(5, 150, 105, 0.08), transparent 55%),
+    radial-gradient(1200px 600px at 15% -10%, rgba(3, 105, 161, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(4, 120, 87, 0.09), transparent 55%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-elevated) 100%);
 }
 
@@ -1388,6 +1388,19 @@ tbody tr:hover {
 .admin-nav-metallic .navbar-brand {
   color: #e2e8f0;
 }
+[data-theme='light'] .admin-nav-metallic {
+  background: linear-gradient(90deg, #cbd5e1, #e2e8f0 45%, #7dd3fc 130%) !important;
+  border-bottom: 1px solid var(--border);
+}
+[data-theme='light'] .admin-nav-metallic .navbar-brand,
+[data-theme='light'] .admin-nav-metallic .brand-text-gradient {
+  color: var(--text);
+}
+[data-theme='light'] .admin-nav-btn-outline {
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  color: var(--text) !important;
+  background: rgba(255, 255, 255, 0.45);
+}
 .admin-badge-pill {
   font-size: 0.7rem;
   background: rgba(255, 255, 255, 0.12);
@@ -1395,6 +1408,15 @@ tbody tr:hover {
   border-radius: 99px;
   margin-left: 8px;
   font-weight: 600;
+}
+.admin-nav-metallic .admin-nav-btn-outline {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.08);
+}
+.admin-nav-metallic .admin-nav-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 /* ---------- Skeleton ---------- */

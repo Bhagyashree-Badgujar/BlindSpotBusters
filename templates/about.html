@@ -16,7 +16,6 @@
         <div class="navbar-nav nav-landing-links">
           <a class="nav-link" href="{% url 'home' %}">Home</a>
           <a class="nav-link" href="{% url 'submit_issue' %}">Report</a>
-          <a class="nav-link" href="{% url 'track_issue' %}">Track</a>
           <a class="nav-link" href="{% url 'map_view' %}">Map</a>
           <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
           <a class="nav-link active" href="{% url 'about' %}">About</a>
@@ -34,13 +33,31 @@
   <main class="container page-static">
     <div class="glass-card tilt-hover page-static-card">
       <h1 class="section-heading">About CivicLens</h1>
+
+      <div class="about-vm-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin:22px 0;">
+        <div class="glass-card" style="padding:18px 20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);">
+          <h2 class="section-heading" style="font-size:1.05rem;margin-bottom:10px;">Vision</h2>
+          <p class="text-muted-block" style="margin:0;">
+            A city where every civic concern is visible, traceable, and acted on with integrity — transparency
+            between residents and government as the default, not the exception.
+          </p>
+        </div>
+        <div class="glass-card" style="padding:18px 20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);">
+          <h2 class="section-heading" style="font-size:1.05rem;margin-bottom:10px;">Mission</h2>
+          <p class="text-muted-block" style="margin:0;">
+            CivicLens equips citizens and departments with evidence-led reporting, crowd verification, and
+            AI-assisted triage so responses are faster, fairer, and accountable — building responsive,
+            AI-enabled governance people can trust.
+          </p>
+        </div>
+      </div>
+
       <p class="text-muted-block">
         CivicLens is a smart civic issue reporting system that connects residents, evidence, and departments
-        on one metallic, real-time console. Our mission is to make public infrastructure responsive,
-        measurable, and fair.
+        on one metallic, real-time console. We make public infrastructure responsive, measurable, and fair.
       </p>
       <p class="text-muted-block">
-        Departments can assign work, upload after photos, and read analytics while citizens track resolutions
+        Departments can assign work, upload after photos, and read analytics while citizens follow resolutions
         and earn recognition for verified contributions.
       </p>
       <p class="text-muted-block">

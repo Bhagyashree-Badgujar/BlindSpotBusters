@@ -18,7 +18,6 @@
     <div class="navbar-nav" id="main-nav">
       <a href="{% url 'home' %}" class="nav-link">Home</a>
       <a href="{% url 'submit_issue' %}" class="nav-link">Report</a>
-      <a href="{% url 'track_issue' %}" class="nav-link">Track</a>
       <a href="{% url 'map_view' %}" class="nav-link">Map</a>
       <a href="{% url 'dashboard' %}" class="nav-link active">Dashboard</a>
       <a href="{% url 'about' %}" class="nav-link">About</a>
@@ -218,6 +217,9 @@
         </button>
       </div>
 
+      <p id="modal-closed-note" class="form-hint hidden" style="color:var(--accent);margin-top:8px;">
+        Closed: resolved by the administration and confirmed by citizens. Upvotes and further verification are disabled.
+      </p>
       <div class="card mt-6" style="padding:14px 16px;">
         <div class="section-title" style="margin-bottom:10px;">Crowd verification</div>
         <div id="verify-label" class="text-muted" style="margin-bottom:10px;">—</div>
@@ -228,7 +230,8 @@
         <div class="form-hint" style="margin-top:8px;">Available only when an issue is marked resolved.</div>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+      <a class="btn btn-outline btn-sm" id="modal-pdf-link" href="#" target="_blank" rel="noopener">Download PDF report</a>
       <button type="button" class="btn btn-outline modal-close">Close</button>
     </div>
   </div>

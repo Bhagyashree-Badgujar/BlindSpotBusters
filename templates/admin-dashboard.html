@@ -19,8 +19,7 @@
     </a>
     <div class="navbar-right" style="gap:10px;">
       <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
-      <a class="btn btn-outline btn-sm" href="/admin/" style="border-color:rgba(255,255,255,.35);color:#e2e8f0;">Django Admin</a>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);" id="admin-logout-btn" type="button">Logout</button>
+      <button class="btn btn-outline btn-sm admin-nav-btn-outline" id="admin-logout-btn" type="button">Logout</button>
     </div>
   </div>
 </nav>
@@ -68,6 +67,20 @@
           <div class="stat-label">Resolved</div>
         </div>
       </div>
+      <div class="stat-card tilt-hover">
+        <div class="stat-icon green">✓</div>
+        <div class="stat-info">
+          <div class="stat-value" id="admin-stat-verified">—</div>
+          <div class="stat-label">Crowd verified</div>
+        </div>
+      </div>
+      <div class="stat-card tilt-hover">
+        <div class="stat-icon red">⚠</div>
+        <div class="stat-info">
+          <div class="stat-value" id="admin-stat-disputed">—</div>
+          <div class="stat-label">Disputed</div>
+        </div>
+      </div>
     </div>
 
     <div class="card tilt-hover mt-6" style="padding:20px 24px;">
@@ -103,6 +116,12 @@
             <option value="pending">Pending</option>
             <option value="in_progress">In progress</option>
             <option value="resolved">Resolved</option>
+          </select>
+          <select class="form-select" id="admin-issue-verify" style="max-width:200px;">
+            <option value="">All verification</option>
+            <option value="unverified">Unverified</option>
+            <option value="verified">Verified</option>
+            <option value="disputed">Disputed</option>
           </select>
         </div>
         <div class="card tilt-hover" style="padding:0;">

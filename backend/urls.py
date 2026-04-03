@@ -30,6 +30,7 @@ urlpatterns = [
     path('admin-dashboard/', user_views.admin_dashboard_page, name='admin_dashboard'),
     path('map-view/', user_views.map_view_page, name='map_view'),
     path('certificates/<int:id>/', user_views.certificate_view, name='certificate_view'),
+    path('reports/<int:id>/pdf/', issue_views.issue_report_pdf, name='issue_report_pdf'),
 
     path('api/login/', user_views.login_user),
     path('api/logout/', user_views.logout_user),

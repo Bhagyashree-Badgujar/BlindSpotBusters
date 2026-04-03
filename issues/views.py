@@ -3,7 +3,9 @@ import json
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db.models import Count, F, Max, Sum
-from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -12,8 +14,8 @@ from users.models import Certificate, UserProfile, UserNotification
 
 from .models import Issue, IssueMedia, IssueVerification, IssueVote
 
-# Domain priority for admin sorting: Water > Potholes > Garbage > Streetlight > Others
-CAT_DOMAIN_ORDER = {'water': 5, 'potholes': 4, 'garbage': 3, 'streetlight': 2, 'others': 1}
+# Domain priority for admin sorting: Water > Potholes > Garbage > Others (streetlight grouped with low tier)
+CAT_DOMAIN_ORDER = {'water': 4, 'potholes': 3, 'garbage': 2, 'streetlight': 1, 'others': 1}
 
 
 def api_login_required(view):
@@ -171,6 +173,11 @@ def _issue_dict(issue, request):
     elif v_confirm or v_dispute:
         v_label = f'Crowd votes: {v_confirm} confirm / {v_dispute} dispute'
 
+    workflow_fully_closed = issue.status == 'resolved' and v_state == 'verified'
+    is_owner = bool(
+        request.user.is_authenticated and issue.user_id and issue.user_id == request.user.id
+    )
+
     return {
         'id': issue.id,
         'title': issue.title,
@@ -202,6 +209,8 @@ def _issue_dict(issue, request):
         'photo_exif_at': issue.before_img_captured_at.isoformat() if issue.before_img_captured_at else None,
         'image_exif_suspicious': bool(issue.image_exif_suspicious),
         'image_exif_note': (issue.image_exif_note or '')[:200],
+        'workflow_fully_closed': workflow_fully_closed,
+        'is_owner': is_owner,
     }
 
 
@@ -213,11 +222,26 @@ def _notify_in_app(user, kind, title, body, issue_id=None):
 
 def _notify_issue_resolved_emails(issue):
     """Email reporter + everyone who upvoted the issue."""
-    subject = f'CivicLens resolved: {issue.title[:60]}'
+    from django.utils import timezone as dj_tz
+
+    now = dj_tz.now()
+    ts = now.strftime('%Y-%m-%d %H:%M:%S %Z')
+    desc = (issue.description or '').strip()
+    summary = (desc[:1200] + ('…' if len(desc) > 1200 else '')) if desc else '(No description on file.)'
+    subject = f'[CivicLens] Resolved — Issue #{issue.id}: {issue.title[:50]}'
     body = (
-        f'Issue #{issue.id}: {issue.title}\n\n'
-        f'Status: RESOLVED by the department.\n'
-        f'Thank you for participating in CivicLens.\n'
+        f'Your civic issue has been marked RESOLVED by the administration.\n'
+        f'────────────────────────────────────────\n'
+        f'Issue ID:        #{issue.id}\n'
+        f'Title:           {issue.title}\n'
+        f'Status:          RESOLVED\n'
+        f'Resolution time: {ts}\n'
+        f'Category:        {issue.category}\n'
+        f'Department:      {issue.department or "—"}\n'
+        f'Verification:    {issue.verification_state}\n\n'
+        f'Issue summary:\n{summary}\n\n'
+        f'Open CivicLens to crowd-verify the fix (Confirm resolved / Still not fixed) if applicable.\n'
+        f'— CivicLens Smart Governance\n'
     )
     emails = set()
     if issue.user_id and issue.user.email:
@@ -374,6 +398,12 @@ def issue_vote(request, id):
         issue = Issue.objects.get(id=id)
     except Issue.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
+
+    if issue.status == 'resolved' and issue.verification_state == 'verified':
+        return JsonResponse(
+            {'error': 'This issue is closed after department resolution and citizen confirmation.'},
+            status=400,
+        )
 
     if IssueVote.objects.filter(user=request.user, issue=issue).exists():
         return JsonResponse(
@@ -640,6 +670,14 @@ def verify_issue(request, id):
     if issue.status != 'resolved':
         return JsonResponse({'error': 'Verification is available only for resolved issues'}, status=400)
 
+    if issue.verification_state == 'verified':
+        return JsonResponse(
+            {
+                'error': 'This issue is closed: resolved by the administration and confirmed by citizens.',
+            },
+            status=400,
+        )
+
     try:
         data = json.loads(request.body or '{}')
     except json.JSONDecodeError:
@@ -827,6 +865,66 @@ def suggest_category(request):
     cat = classify_category_from_text(q)
     pr = classify_priority_from_text(q, False, False)
     return JsonResponse({'category': cat, 'priority_hint': pr})
+
+
+def _pdf_safe_line(text, max_len=9000):
+    s = (text or '')[:max_len]
+    return s.encode('latin-1', 'replace').decode('latin-1')
+
+
+@login_required(login_url='/login/')
+@require_http_methods(['GET'])
+def issue_report_pdf(request, id):
+    """PDF export of the citizen's own issue for offline submission."""
+    issue = get_object_or_404(Issue, pk=id, user=request.user)
+    try:
+        from fpdf import FPDF
+    except ImportError:
+        return HttpResponse(
+            'PDF export requires fpdf2. Install with: pip install fpdf2',
+            status=500,
+            content_type='text/plain',
+        )
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=14)
+    pdf.add_page()
+    pdf.set_font('helvetica', 'B', 15)
+    pdf.cell(0, 10, _pdf_safe_line('CivicLens — Citizen issue report'), ln=1)
+    pdf.set_font('helvetica', '', 10)
+    pdf.ln(2)
+
+    lines = [
+        ('Issue ID', f'#{issue.id}'),
+        ('Title', issue.title),
+        ('Status', issue.status),
+        ('Category', issue.category),
+        ('Priority (system)', issue.priority),
+        ('Department', issue.department or '—'),
+        ('Submitted', issue.created_at.isoformat() if issue.created_at else '—'),
+        ('Location', f'{issue.lat}, {issue.lng}' if issue.lat is not None else '—'),
+        ('Verification', issue.verification_state),
+        ('Upvotes', str(issue.votes)),
+        ('Description', issue.description or '—'),
+    ]
+    for label, val in lines:
+        pdf.set_font('helvetica', 'B', 10)
+        pdf.multi_cell(0, 6, _pdf_safe_line(label + ':'))
+        pdf.set_font('helvetica', '', 10)
+        pdf.multi_cell(0, 5, _pdf_safe_line(val))
+        pdf.ln(1)
+
+    pdf.set_font('helvetica', 'I', 8)
+    pdf.multi_cell(0, 4, _pdf_safe_line('Generated from CivicLens for offline records. Not a legal instrument.'))
+
+    out = pdf.output()
+    if isinstance(out, (bytearray, memoryview)):
+        out = bytes(out)
+    elif isinstance(out, str):
+        out = out.encode('latin-1')
+    resp = HttpResponse(out, content_type='application/pdf')
+    resp['Content-Disposition'] = f'attachment; filename="civiclens-issue-{issue.id}.pdf"'
+    return resp
 
 
 def public_news(request):
