@@ -9,9 +9,29 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 
+from issues.models import Issue
+from users.models import UserProfile
+
 
 def home(request):
-    return render(request, 'login.html')
+    stats = {
+        'total': Issue.objects.count(),
+        'resolved': Issue.objects.filter(status='resolved').count(),
+        'active': Issue.objects.exclude(status='resolved').count(),
+    }
+    return render(request, 'landing.html', {'public_stats': stats})
+
+
+def about_page(request):
+    return render(request, 'about.html')
+
+
+def contact_page(request):
+    return render(request, 'contact.html')
+
+
+def track_issue_page(request):
+    return render(request, 'track-issue.html')
 
 
 def login_page(request):
@@ -58,9 +78,8 @@ def admin_dashboard_page(request):
     return render(request, 'admin-dashboard.html')
 
 
-@login_required(login_url='/login/')
 def map_view_page(request):
-    if request.user.is_staff:
+    if request.user.is_authenticated and request.user.is_staff:
         return redirect('admin_dashboard')
     return render(request, 'map-view.html')
 
@@ -124,6 +143,7 @@ def register_user(request):
         return JsonResponse({'error': 'Email already exists'}, status=400)
 
     user = User.objects.create_user(username=username, email=email, password=password)
+    UserProfile.objects.get_or_create(user=user)
     login(request, user)
     return JsonResponse({'status': 'registered', 'username': user.username})
 

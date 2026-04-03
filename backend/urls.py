@@ -9,10 +9,17 @@ from django.urls import path
 from issues import views as issue_views
 from users import views as user_views
 
+admin.site.site_header = 'CivicLens Administration'
+admin.site.site_title = 'CivicLens Admin'
+admin.site.index_title = 'CivicLens Government Console'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     path('', user_views.home, name='home'),
+    path('about/', user_views.about_page, name='about'),
+    path('contact/', user_views.contact_page, name='contact'),
+    path('track/', user_views.track_issue_page, name='track_issue'),
 
     path('login/', user_views.login_page, name='login_page'),
     path('register/', user_views.register_page, name='register_page'),
@@ -28,6 +35,11 @@ urlpatterns = [
     path('api/register/', user_views.register_user),
 
     path('api/user/stats/', issue_views.user_stats),
+    path('api/public/stats/', issue_views.public_stats),
+    path('api/issues/meta/', issue_views.issues_meta),
+    path('api/leaderboard/', issue_views.leaderboard),
+    path('api/issues/nearby/', issue_views.issues_nearby),
+    path('api/issues/suggest-category/', issue_views.suggest_category),
 
     path('api/issues/', issue_views.user_issues),
     path('api/issues/<int:id>/', issue_views.issue_detail),

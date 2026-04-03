@@ -1,5 +1,5 @@
 /**
- * CivicAlert — fetch API (no external HTTP libs), UI helpers
+ * CivicLens — fetch API (no external HTTP libs), UI helpers
  */
 (function () {
   'use strict';
@@ -171,6 +171,14 @@
     return v * 2 + r * 3;
   }
 
+  function markerColorForIssue(issue) {
+    if (!issue) return '#64748b';
+    if (issue.status === 'resolved') return '#34d399';
+    if (issue.priority === 'high') return '#f87171';
+    if (issue.priority === 'medium') return '#fbbf24';
+    return '#38bdf8';
+  }
+
   function initImgSlider(wrap) {
     if (!wrap) return;
     const track = wrap.querySelector('.img-slider-track');
@@ -253,6 +261,7 @@
   window.renderPagination = renderPagination;
   window.statusBadge = statusBadge;
   window.calcImpact = calcImpact;
+  window.markerColorForIssue = markerColorForIssue;
   window.initImgSlider = initImgSlider;
   window.initFileUpload = initFileUpload;
   window.detectLocation = detectLocation;
@@ -274,6 +283,7 @@
     map.addLayer(cluster);
 
     let allIssues = [];
+    let activeFilter = '';
 
     function esc(s) {
       const d = document.createElement('div');
@@ -283,27 +293,27 @@
 
     function draw(filterStatus) {
       cluster.clearLayers();
-
-      const colors = { pending: '#ef4444', in_progress: '#f59e0b', resolved: '#10b981' };
       const bounds = [];
       allIssues.forEach(function (issue) {
         if (filterStatus && issue.status !== filterStatus) return;
         if (issue.lat == null || issue.lng == null) return;
-        const color = colors[issue.status] || '#6b7a99';
+        const color = markerColorForIssue(issue);
         const icon = L.divIcon({
           html:
-            '<div style="width:14px;height:14px;border-radius:50%;background:' +
+            '<div style="width:16px;height:16px;border-radius:50%;background:' +
             color +
-            ';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>',
+            ';border:2px solid rgba(255,255,255,.95);box-shadow:0 0 12px rgba(56,189,248,.35);"></div>',
           className: '',
-          iconSize: [14, 14],
+          iconSize: [16, 16],
         });
         const m = L.marker([issue.lat, issue.lng], { icon: icon }).bindPopup(
           '<strong>' +
             esc(issue.title) +
             '</strong><br>' +
             statusBadge(issue.status) +
-            '<br>' +
+            '<br><span style="opacity:.85;font-size:11px;">' +
+            esc((issue.priority || '').toUpperCase()) +
+            '</span><br>' +
             esc((issue.description || '').slice(0, 120))
         );
         cluster.addLayer(m);
@@ -317,14 +327,18 @@
       }
     }
 
-    API.get('/api/issues/')
-      .then(function (issues) {
-        allIssues = Array.isArray(issues) ? issues : [];
-        draw('');
-      })
-      .catch(function () {
-        Toast.show('Could not load map data.', 'error');
-      });
+    function reloadFromApi() {
+      return API.get('/api/issues/')
+        .then(function (issues) {
+          allIssues = Array.isArray(issues) ? issues : [];
+          draw(activeFilter);
+        })
+        .catch(function () {
+          Toast.show('Could not load map data.', 'error');
+        });
+    }
+
+    reloadFromApi();
 
     document.querySelectorAll('.filter-map-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -332,8 +346,13 @@
           b.classList.remove('active');
         });
         btn.classList.add('active');
-        draw(btn.getAttribute('data-status') || '');
+        activeFilter = btn.getAttribute('data-status') || '';
+        draw(activeFilter);
       });
+    });
+
+    window.addEventListener('civic-data-changed', function () {
+      reloadFromApi();
     });
   };
 })();

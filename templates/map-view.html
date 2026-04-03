@@ -1,79 +1,82 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Map View — CivicAlert</title>
-  <!-- Static CSS -->
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  {% include 'partials/civic-head.html' %}
+  <title>Map — CivicLens</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 </head>
 <body class="page-map-view">
 
-<!-- ===== Navbar ===== -->
 <nav class="navbar">
   <div class="navbar-inner">
-    <a href="{% url 'dashboard' %}" class="navbar-brand">
-      <div class="brand-icon">🏛️</div>
-      CivicAlert
+    <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
+      <div class="brand-icon brand-icon-glow">◈</div>
+      <span class="brand-text-gradient">CivicLens</span>
     </a>
     <div class="navbar-nav">
-      <a href="{% url 'dashboard' %}" class="nav-link">🏠 Home</a>
-      <a href="{% url 'submit_issue' %}" class="nav-link">📋 Submit Issue</a>
-      <a href="{% url 'my_reports' %}" class="nav-link">📂 My Reports</a>
+      <a href="{% url 'home' %}" class="nav-link">Home</a>
+      <a href="{% url 'map_view' %}" class="nav-link active">Map</a>
+      {% if user.is_authenticated %}
+        <a href="{% url 'submit_issue' %}" class="nav-link">Report</a>
+        <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+      {% else %}
+        <a href="{% url 'login_page' %}" class="nav-link">Login</a>
+      {% endif %}
+      <a href="{% url 'track_issue' %}" class="nav-link">Track</a>
     </div>
     <div class="navbar-right">
-      <button class="btn btn-outline btn-sm" id="logout-btn">Logout</button>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+      {% if user.is_authenticated %}
+        <button class="btn btn-outline btn-sm" id="logout-btn" type="button">Logout</button>
+      {% else %}
+        <a class="btn btn-primary btn-sm" href="{% url 'login_page' %}">Login</a>
+      {% endif %}
     </div>
   </div>
 </nav>
 
-<!-- ===== Layout ===== -->
 <div class="layout">
-
-  <!-- Sidebar -->
+  {% if user.is_authenticated %}
   <aside class="sidebar">
-    <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Home</a>
-    <a href="{% url 'submit_issue' %}" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
+    <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="{% url 'submit_issue' %}" class="nav-link"><span class="icon">➕</span> Report Issue</a>
     <a href="{% url 'my_reports' %}" class="nav-link"><span class="icon">📂</span> My Reports</a>
     <a href="{% url 'map_view' %}" class="nav-link active"><span class="icon">🗺️</span> Map View</a>
   </aside>
+  {% endif %}
 
-  <!-- Main Content -->
   <main class="main-content" style="padding:20px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <div>
-        <h1 style="font-size:1.4rem;">🗺️ Issue Map</h1>
-        <p style="color:var(--text-muted);font-size:.87rem;">All reported civic issues in your area</p>
+        <h1 style="font-size:1.4rem;">Live issue map</h1>
+        <p class="map-legend-metallic" style="margin-top:4px;">Priority-aware markers · auto refresh</p>
       </div>
-      <!-- Legend -->
-      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:.82rem;font-weight:600;">
-        <span><span class="dot-red" style="display:inline-block;margin-right:4px;"></span>Pending</span>
-        <span><span class="dot-yellow" style="display:inline-block;margin-right:4px;"></span>In Progress</span>
-        <span><span class="dot-green" style="display:inline-block;margin-right:4px;"></span>Resolved</span>
+      <div class="map-legend-metallic">
+        <span><span class="dot-red"></span> High / open</span>
+        <span><span class="dot-yellow"></span> Medium</span>
+        <span><span class="dot-green"></span> Resolved</span>
       </div>
     </div>
 
-    <!-- Status Filter Buttons -->
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-      <button class="btn btn-outline btn-sm filter-map-btn active" data-status="">All</button>
-      <button class="btn btn-outline btn-sm filter-map-btn" data-status="pending">🔴 Pending</button>
-      <button class="btn btn-outline btn-sm filter-map-btn" data-status="in_progress">🟡 In Progress</button>
-      <button class="btn btn-outline btn-sm filter-map-btn" data-status="resolved">🟢 Resolved</button>
+      <button class="btn btn-outline btn-sm filter-map-btn active" data-status="" type="button">All</button>
+      <button class="btn btn-outline btn-sm filter-map-btn" data-status="pending" type="button">Pending</button>
+      <button class="btn btn-outline btn-sm filter-map-btn" data-status="in_progress" type="button">In progress</button>
+      <button class="btn btn-outline btn-sm filter-map-btn" data-status="resolved" type="button">Resolved</button>
     </div>
 
-    <!-- Map Container -->
-    <div id="map" style="height:calc(100vh - 240px);min-height:400px;"></div>
+    <div id="map" class="map-chrome" style="height:calc(100vh - 220px);min-height:420px;"></div>
   </main>
 </div>
 
-<!-- ===== Scripts ===== -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/realtime.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('logout-btn')?.addEventListener('click', async function () {
@@ -82,6 +85,7 @@
       window.location.href = '/login/';
     });
     if (typeof initMapViewPage === 'function') initMapViewPage();
+    if (window.CivicRealtime) CivicRealtime.start();
   });
 </script>
 </body>

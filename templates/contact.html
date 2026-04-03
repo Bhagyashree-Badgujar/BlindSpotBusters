@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  {% include 'partials/civic-head.html' %}
+  <title>Contact — CivicLens</title>
+</head>
+<body class="landing-body">
+  <header class="nav-landing-wrap">
+    <nav class="navbar navbar-landing">
+      <div class="navbar-inner">
+        <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
+          <span class="brand-icon brand-icon-glow">◈</span>
+          <span class="brand-text-gradient">CivicLens</span>
+        </a>
+        <div class="navbar-nav nav-landing-links">
+          <a class="nav-link" href="{% url 'home' %}">Home</a>
+          <a class="nav-link" href="{% url 'about' %}">About</a>
+          <a class="nav-link active" href="{% url 'contact' %}">Contact</a>
+        </div>
+        <div class="navbar-right landing-actions">
+          <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+          <a class="btn btn-outline btn-sm" href="{% url 'login_page' %}">Login</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main class="container page-static">
+    <div class="glass-card tilt-hover page-static-card">
+      <h1 class="section-heading">Contact the CivicLens desk</h1>
+      <p class="text-muted-block">
+        For partnerships, pilot programs, or enterprise rollout, reach your municipal IT lead or email
+        <a href="mailto:support@civiclens.local">support@civiclens.local</a>.
+      </p>
+      <p class="text-muted-block">Response targets: two business days for civic partners, same day for verified admins.</p>
+      <a class="btn btn-primary metallic-shine" href="{% url 'home' %}">Back to Home</a>
+    </div>
+  </main>
+  <footer class="landing-footer">
+    <div class="container footer-inner">
+      <strong class="brand-text-gradient">CivicLens</strong>
+    </div>
+  </footer>
+  <script src="{% static 'js/theme.js' %}"></script>
+</body>
+</html>

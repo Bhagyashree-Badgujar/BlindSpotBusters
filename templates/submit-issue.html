@@ -1,130 +1,139 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Submit Issue — CivicAlert</title>
-  <!-- Use Django static for CSS -->
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  {% include 'partials/civic-head.html' %}
+  <title>Report Issue — CivicLens</title>
 </head>
 <body>
 
-<!-- ===== Navbar ===== -->
 <nav class="navbar">
   <div class="navbar-inner">
-    <a href="{% url 'dashboard' %}" class="navbar-brand">
-      <div class="brand-icon">🏛️</div>
-      CivicAlert
+    <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
+      <div class="brand-icon brand-icon-glow">◈</div>
+      <span class="brand-text-gradient">CivicLens</span>
     </a>
     <div class="navbar-nav">
-      <a href="{% url 'dashboard' %}" class="nav-link">🏠 Home</a>
-      <a href="{% url 'submit_issue' %}" class="nav-link active">📋 Submit Issue</a>
-      <a href="{% url 'my_reports' %}" class="nav-link">📂 My Reports</a>
+      <a href="{% url 'home' %}" class="nav-link">Home</a>
+      <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+      <a href="{% url 'submit_issue' %}" class="nav-link active">Report</a>
+      <a href="{% url 'my_reports' %}" class="nav-link">My Reports</a>
+      <a href="{% url 'map_view' %}" class="nav-link">Map</a>
+      <a href="{% url 'track_issue' %}" class="nav-link">Track</a>
     </div>
     <div class="navbar-right">
-      <button class="btn btn-outline btn-sm" id="logout-btn">Logout</button>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+      <button class="btn btn-outline btn-sm" id="logout-btn" type="button">Logout</button>
     </div>
   </div>
 </nav>
 
-<!-- ===== Layout ===== -->
 <div class="layout">
-
-  <!-- Sidebar -->
   <aside class="sidebar">
-    <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Home</a>
-    <a href="{% url 'submit_issue' %}" class="nav-link active"><span class="icon">➕</span> Submit Issue</a>
+    <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="{% url 'submit_issue' %}" class="nav-link active"><span class="icon">➕</span> Report Issue</a>
     <a href="{% url 'my_reports' %}" class="nav-link"><span class="icon">📂</span> My Reports</a>
     <a href="{% url 'map_view' %}" class="nav-link"><span class="icon">🗺️</span> Map View</a>
   </aside>
 
-  <!-- Main content -->
   <main class="main-content">
     <div class="page-header">
-      <h1>📋 Submit a Civic Issue</h1>
-      <p>Report a problem in your area. Our team will review and act on it.</p>
+      <h1>Report a civic issue</h1>
+      <p>Multi-modal evidence helps departments verify and resolve faster.</p>
     </div>
 
-    <div class="card" style="max-width:680px;">
-
-      <!-- Duplicate Warning -->
+    <div class="card tilt-hover" style="max-width:720px;">
       <div class="alert alert-warn" id="dup-alert">
-        ⚠️ A similar issue has been reported nearby. Please check existing reports before submitting.
+        A similar issue exists nearby or shares this title. Please review before submitting.
       </div>
-
-      <!-- Success -->
+      <div class="alert alert-warn" id="nearby-alert">
+        <span id="nearby-alert-text">Nearby issues detected.</span>
+      </div>
       <div class="alert alert-success" id="success-alert">
-        ✅ Issue submitted successfully! Redirecting to your reports…
+        Issue submitted successfully. Redirecting…
       </div>
 
-      <!-- Issue form -->
       <form id="issue-form" method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         <div style="display:flex;flex-direction:column;gap:18px;">
 
-          <!-- Title -->
+          <div class="form-group">
+            <label class="form-label" for="category">Category</label>
+            <select class="form-select" id="category" name="category">
+              <option value="potholes">Potholes</option>
+              <option value="garbage">Garbage</option>
+              <option value="streetlight">Streetlight Broken</option>
+              <option value="water">Water Issue</option>
+              <option value="others" selected>Others</option>
+            </select>
+            <span class="form-hint" id="ai-category-hint">AI suggestion appears as you type the description.</span>
+          </div>
+
           <div class="form-group">
             <label class="form-label" for="title">Issue Title *</label>
             <input class="form-input" type="text" id="title" name="title"
-                   placeholder="e.g. Pothole on MG Road near Bus Stop" maxlength="200" required />
+                   placeholder="Short, specific title" maxlength="200" required />
             <span class="form-error" id="err-title"></span>
           </div>
 
-          <!-- Description -->
           <div class="form-group">
             <label class="form-label" for="description">Description *</label>
             <textarea class="form-textarea" id="description" name="description"
-                      placeholder="Describe the issue in detail — size, impact, how long it's been there…"
-                      rows="4" maxlength="1000" required></textarea>
+                      placeholder="What happened, where, and any safety impacts…"
+ rows="4" maxlength="2000" required></textarea>
             <span class="form-error" id="err-description"></span>
           </div>
 
-          <!-- Location -->
           <div class="form-group">
-            <label class="form-label">📍 Location</label>
+            <label class="form-label">Location</label>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
               <input class="form-input" type="text" id="location-label" name="location_label"
-                     placeholder="Auto-detect or type area name" style="flex:1;min-width:180px;" />
-              <button type="button" class="btn btn-outline btn-sm" id="detect-btn">📍 Detect</button>
+                     placeholder="Area label (optional)" style="flex:1;min-width:180px;" />
+              <button type="button" class="btn btn-outline btn-sm" id="detect-btn">Detect GPS</button>
             </div>
             <div style="display:flex;gap:10px;margin-top:8px;">
-              <input class="form-input" type="text" id="lat" name="lat" placeholder="Latitude" readonly style="flex:1;" />
-              <input class="form-input" type="text" id="lng" name="lng" placeholder="Longitude" readonly style="flex:1;" />
+              <input class="form-input" type="text" id="lat" name="lat" placeholder="Latitude" style="flex:1;" />
+              <input class="form-input" type="text" id="lng" name="lng" placeholder="Longitude" style="flex:1;" />
             </div>
-            <span class="form-hint">Click "Detect" to auto-fill coordinates from your browser location.</span>
+            <span class="form-hint">Coordinates unlock nearby duplicate detection and map plotting.</span>
           </div>
 
-          <!-- Image Upload -->
           <div class="form-group">
-            <label class="form-label">📸 Before Photo</label>
+            <label class="form-label">Before photo</label>
             <div class="file-upload-area" id="upload-area">
               <input type="file" name="before_img" id="before-img" accept="image/*" />
               <div class="file-upload-icon">📸</div>
-              <div style="font-weight:600;margin-bottom:4px;">Click or drag to upload</div>
-              <div class="form-hint">JPG, PNG, WebP — max 10 MB</div>
-              <div class="file-preview">
-                <img src="" alt="Preview" />
-              </div>
+              <div style="font-weight:600;margin-bottom:4px;">Primary photo</div>
+              <div class="form-hint">JPG, PNG, WebP</div>
+              <div class="file-preview"><img src="" alt="Preview" /></div>
             </div>
             <span class="form-error" id="err-image"></span>
           </div>
 
-          <!-- Submit -->
-          <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">🚀 Submit Issue</button>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline btn-lg">Cancel</a>
+          <div class="form-group">
+            <label class="form-label">Additional evidence (photos, video, audio)</label>
+            <div class="file-upload-area" id="evidence-area">
+              <input type="file" name="evidence_files" id="evidence-files" multiple
+                     accept="image/*,video/*,audio/*" />
+              <div class="file-upload-icon">🎞️</div>
+              <div style="font-weight:600;margin-bottom:4px;">Click to add files</div>
+              <div class="form-hint">Multiple files supported</div>
+              <div id="evidence-list" class="evidence-list"></div>
+            </div>
           </div>
 
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary btn-lg metallic-shine" id="submit-btn">Submit report</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline btn-lg">Cancel</a>
+          </div>
         </div>
       </form>
     </div>
   </main>
 </div>
 
-<!-- Scripts -->
 <script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/theme.js' %}"></script>
 <script src="{% static 'js/submit-issue.js' %}"></script>
-
 </body>
 </html>

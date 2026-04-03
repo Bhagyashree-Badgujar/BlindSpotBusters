@@ -1,24 +1,24 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login — CivicAlert</title>
-
-  <!-- ✅ FIX CSS -->
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  {% include 'partials/civic-head.html' %}
+  <title>Login — CivicLens</title>
 </head>
 
 <body class="auth-page">
 
-  <div class="auth-card">
+  <div class="auth-card tilt-hover">
     <div class="auth-logo">
-      <div class="icon">🏛️</div>
+      <div class="icon" aria-hidden="true">◈</div>
       <div>
-        <h2>CivicAlert</h2>
+        <h2 class="brand-text-gradient" style="font-size:1.35rem;">CivicLens</h2>
         <p>Sign in to your account</p>
       </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
     </div>
 
     <div id="alert-box" class="alert alert-error">
@@ -43,14 +43,14 @@
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;">
-          <label style="display:flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer;color:var(--text-muted);">
             <input type="checkbox" id="remember-me" name="remember_me" />
             Remember me
           </label>
           <a href="#" style="font-size:.88rem;">Forgot password?</a>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg w-full" id="submit-btn">
+        <button type="submit" class="btn btn-primary btn-lg w-full metallic-shine" id="submit-btn">
           Sign In
         </button>
 
@@ -59,20 +59,19 @@
 
     <div class="auth-divider">or</div>
 
-    <!-- ✅ FIX LINKS -->
     <p style="text-align:center;font-size:.9rem;">
-      New to CivicAlert? <a href="/register/">Create account →</a>
+      New to CivicLens? <a href="{% url 'register_page' %}">Create account →</a>
     </p>
 
     <p style="text-align:center;font-size:.82rem;margin-top:12px;">
-      <a href="/admin-login/" style="color:var(--text-muted);">Admin login →</a>
+      <a href="{% url 'home' %}" style="color:var(--text-muted);">← Back to home</a>
+      ·
+      <a href="{% url 'admin_login_page' %}" style="color:var(--text-muted);">Admin login →</a>
     </p>
   </div>
 
-  <!-- ❌ REMOVE duplicate {% load static %} from here -->
-
-  <!-- ✅ JS (already correct) -->
   <script src="{% static 'js/utils.js' %}"></script>
+  <script src="{% static 'js/theme.js' %}"></script>
   <script src="{% static 'js/login.js' %}"></script>
 
 </body>
