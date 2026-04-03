@@ -1,0 +1,50 @@
+"""
+URL configuration for backend project.
+"""
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import path
+
+from issues import views as issue_views
+from users import views as user_views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+
+    path('', user_views.home, name='home'),
+
+    path('login/', user_views.login_page, name='login_page'),
+    path('register/', user_views.register_page, name='register_page'),
+    path('dashboard/', user_views.dashboard_page, name='dashboard'),
+    path('my-reports/', user_views.my_reports_page, name='my_reports'),
+    path('submit-issue/', user_views.submit_issue_page, name='submit_issue'),
+    path('admin-login/', user_views.admin_login_page, name='admin_login_page'),
+    path('admin-dashboard/', user_views.admin_dashboard_page, name='admin_dashboard'),
+    path('map-view/', user_views.map_view_page, name='map_view'),
+
+    path('api/login/', user_views.login_user),
+    path('api/logout/', user_views.logout_user),
+    path('api/register/', user_views.register_user),
+
+    path('api/user/stats/', issue_views.user_stats),
+    path('api/public/stats/', issue_views.public_stats),
+
+    path('api/issues/', issue_views.user_issues),
+    path('api/issues/<int:id>/', issue_views.issue_detail),
+    path('api/issues/<int:id>/vote/', issue_views.issue_vote),
+    path('api/issues/check-duplicate/', issue_views.check_duplicate),
+    path('api/issues/nearby-similar/', issue_views.nearby_similar_issues),
+    path('api/issues/similar/', issue_views.suggest_similar_issues),
+
+    path('report/', issue_views.create_issue),
+
+    path('api/admin-login/', user_views.admin_login),
+    path('api/admin/users/', user_views.admin_users),
+    path('api/admin/stats/', issue_views.admin_stats),
+    path('api/admin/issues/', issue_views.admin_issues),
+    path('api/admin/issues/<int:id>/', issue_views.admin_issue_update),
+    path('api/admin/issues/<int:id>/after-image/', issue_views.admin_issue_after_image),
+]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

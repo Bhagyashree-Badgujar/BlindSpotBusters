@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Map View — CivicAlert</title>
+  <!-- Static CSS -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+</head>
+<body class="page-map-view">
+
+<!-- ===== Navbar ===== -->
+{% include 'partials/navbar.html' with active_page='map' %}
+
+<!-- ===== Layout ===== -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a href="{% url 'dashboard' %}" class="nav-link"><span class="icon">🏠</span> Home</a>
+    <a href="{% url 'submit_issue' %}" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
+    <a href="{% url 'my_reports' %}" class="nav-link"><span class="icon">📂</span> My Reports</a>
+    <a href="{% url 'map_view' %}" class="nav-link active"><span class="icon">🗺️</span> Map View</a>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" style="padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1 style="font-size:1.4rem;">🗺️ Issue Map</h1>
+        <p style="color:var(--text-muted);font-size:.87rem;">All reported civic issues in your area</p>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:.82rem;font-weight:600;">
+        <span><span class="dot-red" style="display:inline-block;margin-right:4px;"></span>High Priority</span>
+        <span><span class="dot-yellow" style="display:inline-block;margin-right:4px;"></span>Medium Priority</span>
+        <span><span class="dot-green" style="display:inline-block;margin-right:4px;"></span>Resolved</span>
+      </div>
+    </div>
+
+    <!-- Status Filter Buttons -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm filter-map-btn active" data-status="">All</button>
+      <button class="btn btn-outline btn-sm filter-map-btn" data-status="pending">🔴 Pending</button>
+      <button class="btn btn-outline btn-sm filter-map-btn" data-status="in_progress">🟡 In Progress</button>
+      <button class="btn btn-outline btn-sm filter-map-btn" data-status="resolved">🟢 Resolved</button>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map" style="height:calc(100vh - 240px);min-height:400px;"></div>
+  </main>
+</div>
+
+<!-- ===== Scripts ===== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('logout-btn')?.addEventListener('click', async function () {
+      try { await API.post('/api/logout/'); } catch (e) {}
+      localStorage.removeItem('civic_user');
+      window.location.href = '/login/';
+    });
+    if (typeof initMapViewPage === 'function') initMapViewPage();
+  });
+</script>
+</body>
+</html>

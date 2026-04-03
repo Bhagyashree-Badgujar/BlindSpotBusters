@@ -1,0 +1,63 @@
+{% load static %}
+{# GOV NAVBAR (user/staff aware). Set `active_page` in the parent template. #}
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="{% url 'home' %}" class="navbar-brand" aria-label="CivicAlert Home">
+      <div class="brand-icon">🏛️</div>
+      CivicAlert
+    </a>
+
+    <div class="navbar-nav" id="main-nav">
+      <a
+        href="{% url 'home' %}"
+        class="nav-link {% if active_page == 'home' %}active{% endif %}"
+      >🏠 Home</a>
+      <a
+        href="{% url 'submit_issue' %}"
+        class="nav-link {% if active_page == 'report' %}active{% endif %}"
+      >📋 Report</a>
+      <a
+        href="{% url 'my_reports' %}"
+        class="nav-link {% if active_page == 'track' %}active{% endif %}"
+      >📂 Track</a>
+      <a
+        href="{% url 'map_view' %}"
+        class="nav-link {% if active_page == 'map' %}active{% endif %}"
+      >🗺️ Map</a>
+      <a
+        href="{% if user.is_staff %}{% url 'admin_dashboard' %}{% else %}{% url 'dashboard' %}{% endif %}"
+        class="nav-link {% if active_page == 'dashboard' or active_page == 'admin' %}active{% endif %}"
+      >💼 Dashboard</a>
+      <a
+        href="{% url 'home' %}#about"
+        class="nav-link {% if active_page == 'about' %}active{% endif %}"
+      >ℹ️ About</a>
+      <a
+        href="{% url 'home' %}#contact"
+        class="nav-link {% if active_page == 'contact' %}active{% endif %}"
+      >✉️ Contact</a>
+    </div>
+
+    <div class="navbar-right">
+      <span id="user-greeting" style="font-size:.88rem;color:var(--text-muted);"></span>
+
+      <button class="btn btn-outline btn-sm" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+        🌙 <span class="theme-toggle-label">Dark</span>
+      </button>
+
+      {% if user.is_authenticated %}
+        {% if user.is_staff %}
+          <button class="btn btn-outline btn-sm" id="admin-logout-btn" type="button">Logout</button>
+        {% else %}
+          <button class="btn btn-outline btn-sm" id="logout-btn" type="button">Logout</button>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'login_page' %}" class="btn btn-outline btn-sm">Login</a>
+        <a href="{% url 'register_page' %}" class="btn btn-primary btn-sm">Register</a>
+      {% endif %}
+
+      <button class="hamburger" id="hamburger" type="button" aria-label="Open navigation menu">☰</button>
+    </div>
+  </div>
+</nav>
+

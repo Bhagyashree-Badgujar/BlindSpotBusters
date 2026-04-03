@@ -1,0 +1,201 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — CivicAlert</title>
+
+  <!-- ✅ FIXED CSS -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+<!-- ===== Navbar ===== -->
+{% include 'partials/navbar.html' with active_page='dashboard' %}
+
+<!-- ===== Layout ===== -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="/dashboard/" class="nav-link active"><span class="icon">🏠</span> Home</a>
+    <a href="/submit-issue/" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
+    <a href="/my-reports/" class="nav-link"><span class="icon">📂</span> My Reports</a>
+    <a href="/map-view/" class="nav-link"><span class="icon">🗺️</span> Map View</a>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <div class="page-header">
+      <h1>Dashboard 📊</h1>
+      <p>Welcome back! Here's a summary of your civic reports.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid" id="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">📋</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total Submitted</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-resolved">—</div>
+          <div class="stat-label">Resolved</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon yellow">⏳</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-pending">—</div>
+          <div class="stat-label">Pending</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon red">👍</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-upvotes">—</div>
+          <div class="stat-label">Upvotes Received</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card mt-6" style="padding:20px 24px;">
+      <div class="section-title">📈 Issues by Status</div>
+      <div class="mini-bar-chart" id="mini-chart">
+        <div class="bar-col"><div class="bar red" id="bar-pending"></div><div class="bar-label">Pending</div></div>
+        <div class="bar-col"><div class="bar yellow" id="bar-progress"></div><div class="bar-label">In Progress</div></div>
+        <div class="bar-col"><div class="bar green" id="bar-resolved"></div><div class="bar-label">Resolved</div></div>
+      </div>
+    </div>
+
+    <!-- Reports -->
+    <div class="card mt-6">
+      <div class="section-title">📂 Recent Reports</div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        <input class="form-input" type="search" id="dashboard-search-input" placeholder="🔍 Search by title/description…" style="max-width:320px;" />
+        <select class="form-select" id="dashboard-status-filter" style="max-width:200px;">
+          <option value="">All Statuses</option>
+          <option value="pending">🔴 Pending</option>
+          <option value="in_progress">🟡 In Progress</option>
+          <option value="resolved">🟢 Resolved</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>👍 Upvotes</th>
+              <th>⭐ Impact</th>
+              <th>Last Updated</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="reports-tbody">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">
+                Loading…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="reports-pagination"></div>
+    </div>
+
+    <!-- Map -->
+    <div class="card mt-6">
+      <div class="section-title" style="justify-content:space-between;">
+        <span>🗺️ Map Preview</span>
+        <a href="/map-view/" class="btn btn-outline btn-sm">Full Map</a>
+      </div>
+      <div id="map" style="height:320px;"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Issue detail modal -->
+<div class="modal-overlay" id="issue-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Issue Details</div>
+      <button type="button" class="modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="timeline" id="modal-timeline">
+        <div class="tl-step" data-step="pending">
+          <div class="tl-dot">📅</div><div class="tl-label">Reported</div><div class="tl-date"></div>
+          <img class="tl-thumb" data-thumb="before" alt="Before" />
+        </div>
+        <div class="tl-step" data-step="in_progress">
+          <div class="tl-dot">🔧</div><div class="tl-label">In Progress</div><div class="tl-date"></div>
+        </div>
+        <div class="tl-step" data-step="resolved">
+          <div class="tl-dot">✅</div><div class="tl-label">Resolved</div><div class="tl-date"></div>
+          <img class="tl-thumb" data-thumb="after" alt="After" />
+        </div>
+      </div>
+      <div class="img-slider-wrap" id="modal-slider" style="margin:16px 0;">
+        <span class="img-slide-label">📸 Before / After</span>
+        <div class="img-slider-track">
+          <div class="img-slide">
+            <img src="https://placehold.co/640x220?text=Before" id="modal-before-img" alt="Before" />
+          </div>
+          <div class="img-slide">
+            <img src="https://placehold.co/640x220?text=After" id="modal-after-img" alt="After" />
+          </div>
+        </div>
+        <div class="img-nav">
+          <div class="img-dot active"></div>
+          <div class="img-dot"></div>
+        </div>
+      </div>
+      <p id="modal-desc" style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;"></p>
+      <div class="impact-score" id="modal-impact">
+        <div>
+          <div class="impact-label">⭐ Impact Score</div>
+          <div class="impact-number" id="modal-score">0</div>
+        </div>
+        <div style="flex:1;font-size:.8rem;color:var(--text-muted);">Votes × 2 + recent activity</div>
+      </div>
+      <div class="alert alert-warn mt-4" id="modal-duplicate">⚠️ Possible duplicate report.</div>
+      <div style="margin-top:16px;display:flex;align-items:center;gap:12px;">
+        <button type="button" class="upvote-btn" id="modal-upvote-btn">
+          ⭐ Upvote <span class="count" id="modal-vote-count">0</span>
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline modal-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== JS ===== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- ✅ FIXED STATIC JS -->
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+
+</body>
+</html>
