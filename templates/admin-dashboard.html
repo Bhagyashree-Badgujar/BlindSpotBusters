@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard — CivicAlert</title>
+  <title>Admin Dashboard | CivicLens</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -17,7 +18,7 @@
   <div class="navbar-inner">
     <a href="{% url 'admin_dashboard' %}" class="navbar-brand" style="color:#fff;">
       <div class="brand-icon" style="background:rgba(255,255,255,.2);">🏛️</div>
-      CivicAlert <span style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;margin-left:6px;font-weight:600;">ADMIN</span>
+      CivicLens <span style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;margin-left:6px;font-weight:600;">ADMIN</span>
     </a>
     <div class="navbar-right">
       <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);" id="admin-logout-btn">Logout</button>

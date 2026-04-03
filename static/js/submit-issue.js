@@ -27,7 +27,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const val = e.target.value.trim();
     if (val.length < 5) return;
     dupTimeout = setTimeout(() => checkDuplicate(val), 800);
+    autoSuggestCategory();
   });
+  document.getElementById('description')?.addEventListener('input', autoSuggestCategory);
+
+  function autoSuggestCategory() {
+    const text = `${document.getElementById('title')?.value || ''} ${document.getElementById('description')?.value || ''}`.toLowerCase();
+    let category = 'Others';
+    if (text.match(/pothole|road|crack|asphalt/)) category = 'Potholes';
+    else if (text.match(/garbage|waste|trash|dump/)) category = 'Garbage';
+    else if (text.match(/light|streetlight|lamp/)) category = 'Streetlight Broken';
+    else if (text.match(/water|leak|pipe|drain/)) category = 'Water Issue';
+    const ai = document.getElementById('ai-category');
+    if (ai) ai.textContent = category;
+    const select = document.getElementById('category');
+    if (select && !select.value) select.value = category;
+  }
+
+  async function checkNearbyIssues(lat, lng) {
+    if (!lat || !lng) return;
+    try {
+      const issues = await API.get('/api/issues/');
+      const hereLat = parseFloat(lat);
+      const hereLng = parseFloat(lng);
+      const near = issues.some((i) => i.lat && i.lng && haversineKm(hereLat, hereLng, i.lat, i.lng) <= 0.8);
+      document.getElementById('nearby-alert')?.classList.toggle('show', near);
+    } catch (_) {}
+  }
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
 
   async function checkDuplicate(title) {
     try {
@@ -51,10 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
       el.textContent = '';
       el.classList.remove('show');
     });
-    form.querySelectorAll('.form-input, .form-textarea').forEach(el => el.style.borderColor = '');
+    form.querySelectorAll('.form-input, .form-textarea, .form-select').forEach(el => el.style.borderColor = '');
 
     const title = form.querySelector('#title');
     const desc = form.querySelector('#description');
+    const category = form.querySelector('#category');
     let valid = true;
 
     if (!title.value.trim()) {
@@ -65,6 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
       Validator.showError(desc, 'Description is required.');
       valid = false;
     }
+    if (!category.value) {
+      Validator.showError(category, 'Please select a category.');
+      valid = false;
+    }
     if (!valid) return;
 
     submitBtn.disabled = true;
@@ -72,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const formData = new FormData(form);
+      formData.set('title', `[${category.value}] ${title.value.trim()}`);
+      await checkNearbyIssues(formData.get('lat'), formData.get('lng'));
 
       // Submit to Django backend
       const res = await API.post('/report/', formData);

@@ -101,16 +101,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ---------- Map ---------- */
   let map;
+  let markersLayer;
   function initMap() {
     map = L.map('map').setView([20.5937, 78.9629], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
   }
 
   async function loadMapMarkers() {
     try {
       const issues = await API.get('/api/issues/');
+      markersLayer.clearLayers();
       issues.forEach(issue => {
         if (!issue.lat || !issue.lng) return;
         const colors = { pending: '#ef4444', in_progress: '#f59e0b', resolved: '#10b981' };
@@ -120,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           className: '', iconSize: [14, 14]
         });
         L.marker([issue.lat, issue.lng], { icon })
-          .addTo(map)
+          .addTo(markersLayer)
           .bindPopup(`<strong>${escHtml(issue.title)}</strong><br>${statusBadge(issue.status)}<br>${escHtml(issue.description || '')}`)
           .on('click', () => openModal(issue.id));
       });
@@ -129,6 +132,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initMap();
   loadMapMarkers();
+  setInterval(() => {
+    loadStats();
+    loadReports();
+    loadMapMarkers();
+  }, 10000);
 
   /* ---------- Issue Detail Modal ---------- */
   let currentIssueId = null;
@@ -171,11 +179,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('modal-upvote-btn')?.addEventListener('click', async () => {
     if (!currentIssueId) return;
+    const voteKey = `civiclens_vote_${currentIssueId}`;
+    if (localStorage.getItem(voteKey)) {
+      Toast.show('You already upvoted this issue from this account on this device.', 'warn');
+      return;
+    }
     try {
       const res = await API.post('/api/issues/' + currentIssueId + '/vote/');
       document.getElementById('modal-vote-count').textContent = res.votes;
       document.getElementById('modal-upvote-btn').classList.toggle('voted', res.user_voted);
       document.getElementById('modal-score').textContent = calcImpact(res.votes, 0);
+      localStorage.setItem(voteKey, '1');
       Toast.show(res.user_voted ? '⭐ Upvote added!' : 'Upvote removed.', 'success');
     } catch (err) {
       Toast.show(err.message || 'Could not vote.', 'error');

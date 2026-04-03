@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CivicLens | Smart Civic Issue Reporting System</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body class="landing-page">
+  <nav class="navbar glass-nav">
+    <div class="navbar-inner">
+      <a href="{% url 'home' %}" class="navbar-brand">
+        <div class="brand-icon">CL</div>
+        CivicLens
+      </a>
+      <div class="navbar-nav" id="main-nav">
+        <a href="{% url 'home' %}" class="nav-link active">Home</a>
+        <a href="{% url 'submit_issue' %}" class="nav-link">Report</a>
+        <a href="{% url 'my_reports' %}" class="nav-link">Track</a>
+        <a href="{% url 'map_view' %}" class="nav-link">Map</a>
+        <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </div>
+      <div class="navbar-right">
+        <button type="button" class="btn btn-outline btn-sm" id="theme-toggle">Dark</button>
+        <a href="{% url 'login_page' %}" class="btn btn-primary btn-sm">Login/Register</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="landing-main">
+    <section class="hero-metal container">
+      <p class="hero-kicker">Future-ready governance platform</p>
+      <h1>CivicLens: Smart Civic Issue Reporting System</h1>
+      <p class="hero-sub">
+        Government-grade civic grievance intelligence with transparent tracking, smart prioritization, and live city-wide visibility.
+      </p>
+      <div class="hero-cta">
+        <a href="{% url 'submit_issue' %}" class="btn btn-primary btn-lg">Report Issue</a>
+        <a href="{% url 'my_reports' %}" class="btn btn-outline btn-lg">Track Complaint</a>
+        <a href="{% url 'map_view' %}" class="btn btn-outline btn-lg">View Map</a>
+        <a href="{% url 'login_page' %}" class="btn btn-accent btn-lg">Login/Register</a>
+      </div>
+    </section>
+
+    <section class="container stats-strip" id="live-stats">
+      <article class="metal-card stat-card-3d">
+        <span>Total Issues</span>
+        <strong id="landing-total">0</strong>
+      </article>
+      <article class="metal-card stat-card-3d">
+        <span>Resolved</span>
+        <strong id="landing-resolved">0</strong>
+      </article>
+      <article class="metal-card stat-card-3d">
+        <span>Active</span>
+        <strong id="landing-active">0</strong>
+      </article>
+    </section>
+
+    <section class="container features-grid" id="about">
+      <article class="metal-card floating">
+        <h3>Smart Detection</h3>
+        <p>Duplicate and nearby issue awareness with contextual prompts before submission.</p>
+      </article>
+      <article class="metal-card floating">
+        <h3>Impact Intelligence</h3>
+        <p>Dynamic impact score and trend signals to prioritize critical issues quickly.</p>
+      </article>
+      <article class="metal-card floating">
+        <h3>Live Civic Map</h3>
+        <p>Color-coded geotagged reports and hotspots for faster field operations.</p>
+      </article>
+      <article class="metal-card floating">
+        <h3>Citizen Gamification</h3>
+        <p>Reward badges and leaderboard points for high-quality verified reports.</p>
+      </article>
+    </section>
+
+    <section class="container contact-strip" id="contact">
+      <h3>Built for citizens, trusted by administration.</h3>
+      <p>Designed for mobile-first operations, real-time updates, and transparent public accountability.</p>
+    </section>
+  </main>
+
+  <script src="{% static 'js/utils.js' %}"></script>
+  <script src="{% static 'js/landing.js' %}"></script>
+</body>
+</html>

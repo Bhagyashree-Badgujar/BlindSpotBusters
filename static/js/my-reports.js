@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* ---------- Load Reports ---------- */
   async function loadReports() {
     try {
-      allReports = await API.get('/issues/?mine=true'); // Django endpoint
+      allReports = await API.get('/api/issues/?mine=true');
     } catch (err) {
       allReports = [];
       Toast.show('Could not load reports.', 'error');
@@ -125,11 +125,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* ---------- Upvote ---------- */
   document.getElementById('modal-upvote-btn')?.addEventListener('click', async () => {
     if (!currentIssueId) return;
+    const voteKey = `civiclens_vote_${currentIssueId}`;
+    if (localStorage.getItem(voteKey)) {
+      Toast.show('You already upvoted this issue from this account on this device.', 'warn');
+      return;
+    }
     try {
       const res = await API.post('/api/issues/' + currentIssueId + '/vote/');
       document.getElementById('modal-vote-count').textContent = res.votes;
       document.getElementById('modal-upvote-btn').classList.toggle('voted', res.user_voted);
       document.getElementById('modal-score').textContent = calcImpact(res.votes, 0);
+      localStorage.setItem(voteKey, '1');
       Toast.show(res.user_voted ? '⭐ Upvoted!' : 'Vote removed.', 'success');
     } catch {
       Toast.show('Could not vote.', 'error');
@@ -138,6 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ---------- Init ---------- */
   loadReports();
+  setInterval(loadReports, 10000);
 });
 
 /* ---------- Helper Functions ---------- */

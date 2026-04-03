@@ -215,8 +215,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* ---------- Admin Hotspot Map ---------- */
-  let adminMap      = null;
+  let adminMap = null;
   let mapInitialized = false;
+  let clusterGrp = null;
 
   function initAdminMap() {
     if (mapInitialized) return;
@@ -227,7 +228,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       attribution: '© OpenStreetMap contributors'
     }).addTo(adminMap);
 
-    const clusterGrp = L.markerClusterGroup({ maxClusterRadius: 60 });
+    clusterGrp = L.markerClusterGroup({ maxClusterRadius: 60 });
+    adminMap.addLayer(clusterGrp);
+    redrawAdminMap();
+  }
+
+  function redrawAdminMap() {
+    if (!clusterGrp) return;
+    clusterGrp.clearLayers();
     const colors = { pending: '#ef4444', in_progress: '#f59e0b', resolved: '#10b981' };
 
     allIssues.forEach(issue => {
@@ -241,9 +249,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         .bindPopup(`<strong>#${issue.id} – ${esc(issue.title)}</strong><br>${statusBadge(issue.status)}<br>User: ${esc(issue.user || '—')}<br>👍 ${issue.votes ?? 0} votes`)
         .addTo(clusterGrp);
     });
-
-    adminMap.addLayer(clusterGrp);
   }
+
+  setInterval(() => {
+    loadStats();
+    loadIssues().then(() => {
+      if (mapInitialized) redrawAdminMap();
+    });
+  }, 10000);
 
 });
 

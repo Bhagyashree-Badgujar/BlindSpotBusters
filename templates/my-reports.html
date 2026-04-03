@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Reports — CivicAlert</title>
+  <title>Track Complaints | CivicLens</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
   <!-- Use Django static for CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
 </head>
@@ -15,12 +16,14 @@
   <div class="navbar-inner">
     <a href="{% url 'dashboard' %}" class="navbar-brand">
       <div class="brand-icon">🏛️</div>
-      CivicAlert
+      CivicLens
     </a>
     <div class="navbar-nav">
-      <a href="{% url 'dashboard' %}" class="nav-link">🏠 Home</a>
-      <a href="{% url 'submit_issue' %}" class="nav-link">📋 Submit Issue</a>
-      <a href="{% url 'my_reports' %}" class="nav-link active">📂 My Reports</a>
+      <a href="{% url 'home' %}" class="nav-link">Home</a>
+      <a href="{% url 'submit_issue' %}" class="nav-link">Report</a>
+      <a href="{% url 'my_reports' %}" class="nav-link active">Track</a>
+      <a href="{% url 'map_view' %}" class="nav-link">Map</a>
+      <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
     </div>
     <div class="navbar-right">
       <button class="btn btn-outline btn-sm" id="logout-btn">Logout</button>

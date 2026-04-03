@@ -9,6 +9,10 @@ from django.urls import path
 from issues import views as issue_views
 from users import views as user_views
 
+admin.site.site_header = "CivicLens Administration"
+admin.site.site_title = "CivicLens Admin"
+admin.site.index_title = "CivicLens Control Panel"
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 

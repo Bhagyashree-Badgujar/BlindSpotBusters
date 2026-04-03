@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}CivicLens Admin{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+{% endblock %}

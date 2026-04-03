@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — CivicAlert</title>
+  <title>Dashboard | CivicLens</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
 
   <!-- ✅ FIXED CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
@@ -19,13 +20,15 @@
   <div class="navbar-inner">
     <a href="/dashboard/" class="navbar-brand">
       <div class="brand-icon">🏛️</div>
-      CivicAlert
+      CivicLens
     </a>
 
     <div class="navbar-nav" id="main-nav">
-      <a href="/dashboard/" class="nav-link active">🏠 Home</a>
-      <a href="/submit-issue/" class="nav-link">📋 Submit Issue</a>
-      <a href="/my-reports/" class="nav-link">📂 My Reports</a>
+      <a href="/" class="nav-link">Home</a>
+      <a href="/submit-issue/" class="nav-link">Report</a>
+      <a href="/my-reports/" class="nav-link">Track</a>
+      <a href="/map-view/" class="nav-link">Map</a>
+      <a href="/dashboard/" class="nav-link active">Dashboard</a>
     </div>
 
     <div class="navbar-right">

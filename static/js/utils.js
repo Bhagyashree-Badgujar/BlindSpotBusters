@@ -1,8 +1,11 @@
 /**
- * CivicAlert — fetch API (no external HTTP libs), UI helpers
+ * CivicLens — fetch API (no external HTTP libs), UI helpers
  */
 (function () {
   'use strict';
+  if (localStorage.getItem('civiclens_theme') === 'dark') {
+    document.documentElement.classList.add('theme-dark');
+  }
 
   function getCookie(name) {
     const m = document.cookie.match(new RegExp('(^|; )' + name.replace(/([$?*|{}\]\\^])/g, '\\$1') + '=([^;]*)'));
@@ -317,14 +320,19 @@
       }
     }
 
-    API.get('/api/issues/')
-      .then(function (issues) {
-        allIssues = Array.isArray(issues) ? issues : [];
-        draw('');
-      })
-      .catch(function () {
-        Toast.show('Could not load map data.', 'error');
-      });
+    function refreshMapData() {
+      API.get('/api/issues/')
+        .then(function (issues) {
+          allIssues = Array.isArray(issues) ? issues : [];
+          const active = document.querySelector('.filter-map-btn.active');
+          draw(active ? active.getAttribute('data-status') || '' : '');
+        })
+        .catch(function () {
+          Toast.show('Could not load map data.', 'error');
+        });
+    }
+    refreshMapData();
+    setInterval(refreshMapData, 10000);
 
     document.querySelectorAll('.filter-map-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
