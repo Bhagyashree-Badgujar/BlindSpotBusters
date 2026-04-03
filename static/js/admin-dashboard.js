@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   let chartStatus = null;
-  let chartCategory = null;
+  let chartVerification = null;
 
   async function loadStats() {
     try {
@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('admin-stat-issues').textContent = data.issues ?? 0;
       document.getElementById('admin-stat-pending').textContent = data.pending ?? 0;
       document.getElementById('admin-stat-resolved').textContent = data.resolved ?? 0;
+      document.getElementById('admin-total-points').textContent = data.total_points ?? 0;
+      document.getElementById('admin-max-points').textContent = data.max_points ?? 0;
 
       const ctxS = document.getElementById('admin-chart-status');
       if (ctxS && window.Chart) {
@@ -76,34 +78,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
-      const ctxC = document.getElementById('admin-chart-category');
-      if (ctxC && window.Chart) {
-        const rows = data.by_category || [];
-        const labels = rows.map((r) => String(r.category || '').replace(/_/g, ' '));
-        const values = rows.map((r) => r.count || 0);
-        if (chartCategory) chartCategory.destroy();
-        chartCategory = new Chart(ctxC, {
-          type: 'line',
+      const ctxV = document.getElementById('admin-chart-verification');
+      if (ctxV && window.Chart) {
+        const rows = data.by_verification || [];
+        const map = { unverified: 0, verified: 0, disputed: 0 };
+        rows.forEach((r) => {
+          map[r.verification_state] = r.count || 0;
+        });
+        const labels = ['Unverified', 'Verified', 'Disputed'];
+        const values = [map.unverified || 0, map.verified || 0, map.disputed || 0];
+        if (chartVerification) chartVerification.destroy();
+        chartVerification = new Chart(ctxV, {
+          type: 'doughnut',
           data: {
-            labels: labels.length ? labels : ['—'],
+            labels,
             datasets: [
               {
-                label: 'Reports',
-                data: values.length ? values : [0],
-                borderColor: '#38bdf8',
-                tension: 0.35,
-                fill: true,
-                backgroundColor: 'rgba(56,189,248,.12)',
+                data: values.length ? values : [1],
+                backgroundColor: ['rgba(56,189,248,.55)', '#34d399', '#fbbf24'],
+                borderWidth: 0,
               },
             ],
           },
           options: {
             plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } },
-            scales: {
-              x: { ticks: { color: getComputedStyle(document.body).color } },
-              y: { ticks: { color: getComputedStyle(document.body).color } },
-            },
-            animation: { duration: 900 },
+            animation: { duration: 900, easing: 'easeOutQuart' },
           },
         });
       }
@@ -153,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const slice = issues.slice(start, start + I_PER_PAGE);
 
     if (!slice.length) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">No issues found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">No issues found.</td></tr>`;
       document.getElementById('admin-issues-pagination').innerHTML = '';
       return;
     }
@@ -170,6 +169,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         </td>
         <td style="font-size:.78rem;">${esc(issue.category || '')}</td>
         <td>${priBadge(issue.priority)}</td>
+        <td>${
+          issue.verification_state === 'verified'
+            ? '<span class="badge badge-resolved">VERIFIED</span>'
+            : issue.verification_state === 'disputed'
+              ? '<span class="badge badge-progress">DISPUTED</span>'
+              : '<span class="badge badge-blue">UNVERIFIED</span>'
+        }</td>
         <td><span class="badge badge-blue">${issue.impact_score ?? 0}</span></td>
         <td style="font-size:.85rem;">${esc(issue.user || '—')}</td>
         <td>${issue.votes ?? 0}</td>

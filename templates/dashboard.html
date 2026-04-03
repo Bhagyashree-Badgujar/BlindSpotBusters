@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   {% include 'partials/civic-head.html' %}
   <title>Dashboard — CivicLens</title>
@@ -112,11 +112,16 @@
 
     <div class="card mt-6 tilt-hover" style="padding:20px 24px;">
       <div class="section-title" style="justify-content:space-between;">
-        <span>🏆 Public leaderboard</span>
+        <span>Community verification</span>
       </div>
-      <ul class="leaderboard-list" id="leaderboard-list">
-        <li class="text-muted">Loading…</li>
-      </ul>
+      <p class="text-muted" style="margin-top:-6px;">
+        When an issue is marked resolved, citizens can confirm it or dispute it. Majority confirmation becomes “Verified”.
+      </p>
+    </div>
+
+    <div class="card mt-6 tilt-hover" style="padding:20px 24px;">
+      <div class="section-title">Certificates</div>
+      <div id="cert-list" class="text-muted">Loading…</div>
     </div>
 
     <div class="card mt-6 tilt-hover">
@@ -206,6 +211,16 @@
         <button type="button" class="upvote-btn" id="modal-upvote-btn">
           Upvote <span class="count" id="modal-vote-count">0</span>
         </button>
+      </div>
+
+      <div class="card mt-6" style="padding:14px 16px;">
+        <div class="section-title" style="margin-bottom:10px;">Crowd verification</div>
+        <div id="verify-label" class="text-muted" style="margin-bottom:10px;">—</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-outline btn-sm" id="verify-confirm-btn">Confirm resolved</button>
+          <button type="button" class="btn btn-outline btn-sm" id="verify-dispute-btn">Still not fixed</button>
+        </div>
+        <div class="form-hint" style="margin-top:8px;">Available only when an issue is marked resolved.</div>
       </div>
     </div>
     <div class="modal-footer">

@@ -46,6 +46,16 @@ class Issue(models.Model):
     lat = models.FloatField(blank=True, null=True)
     lng = models.FloatField(blank=True, null=True)
 
+    # Crowd verification (for resolved status)
+    verified_confirm_count = models.PositiveIntegerField(default=0)
+    verified_dispute_count = models.PositiveIntegerField(default=0)
+    verification_state = models.CharField(
+        max_length=16,
+        choices=[('unverified', 'Unverified'), ('verified', 'Verified'), ('disputed', 'Disputed')],
+        default='unverified',
+    )
+    verification_points_awarded = models.BooleanField(default=False)
+
     class Meta:
         ordering = ['-created_at']
 
@@ -104,3 +114,23 @@ class IssueMedia(models.Model):
 
     def __str__(self):
         return f"{self.issue_id} ({self.media_type})"
+
+
+class IssueVerification(models.Model):
+    CHOICES = [
+        ('confirm', 'Confirm resolved'),
+        ('dispute', 'Still not fixed'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='issue_verifications')
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='verifications')
+    choice = models.CharField(max_length=12, choices=CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'issue'],
+                name='issues_issueverification_user_issue_uniq',
+            ),
+        ]

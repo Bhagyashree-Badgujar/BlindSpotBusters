@@ -147,11 +147,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       upvoteBtn?.classList.toggle('voted', !!issue.user_voted);
       if (upvoteBtn) upvoteBtn.disabled = !!issue.user_voted;
 
+      const verifyLabel = document.getElementById('verify-label');
+      if (verifyLabel) verifyLabel.textContent = issue.verification_label || '—';
+      const vOk = issue.status === 'resolved';
+      const btnC = document.getElementById('verify-confirm-btn');
+      const btnD = document.getElementById('verify-dispute-btn');
+      if (btnC) {
+        btnC.disabled = !vOk || issue.user_verification === 'confirm';
+        btnC.classList.toggle('voted', issue.user_verification === 'confirm');
+      }
+      if (btnD) {
+        btnD.disabled = !vOk || issue.user_verification === 'dispute';
+        btnD.classList.toggle('voted', issue.user_verification === 'dispute');
+      }
+
       Modal.open('issue-modal');
     } catch {
       Toast.show('Could not load issue details.', 'error');
     }
   }
+
+  async function sendVerify(choice) {
+    if (!currentIssueId) return;
+    try {
+      const res = await API.post('/api/issues/' + currentIssueId + '/verify/', { choice });
+      document.getElementById('verify-label').textContent = res.verification_label || '—';
+      document.getElementById('verify-confirm-btn').disabled = choice === 'confirm';
+      document.getElementById('verify-dispute-btn').disabled = choice === 'dispute';
+      Toast.show('Verification saved.', 'success');
+      loadReports();
+    } catch (err) {
+      Toast.show(err.message || 'Could not verify.', 'error');
+    }
+  }
+
+  document.getElementById('verify-confirm-btn')?.addEventListener('click', () => sendVerify('confirm'));
+  document.getElementById('verify-dispute-btn')?.addEventListener('click', () => sendVerify('dispute'));
 
   document.getElementById('modal-upvote-btn')?.addEventListener('click', async () => {
     if (!currentIssueId) return;

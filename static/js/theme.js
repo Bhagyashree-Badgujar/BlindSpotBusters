@@ -2,7 +2,7 @@
   'use strict';
 
   function apply(saved) {
-    var theme = saved || localStorage.getItem('civic-theme') || 'dark';
+    var theme = saved || localStorage.getItem('civic-theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
     document.querySelectorAll('.theme-toggle').forEach(function (btn) {
       btn.setAttribute('aria-pressed', theme === 'light' ? 'true' : 'false');

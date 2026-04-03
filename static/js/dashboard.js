@@ -68,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           },
         });
       }
+
+      renderCertificates(data.certificates || []);
     } catch {}
   }
 
@@ -78,29 +80,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadStats();
 
-  async function loadLeaderboard() {
-    const ul = document.getElementById('leaderboard-list');
-    if (!ul) return;
-    try {
-      const rows = await API.get('/api/leaderboard/');
-      if (!Array.isArray(rows) || !rows.length) {
-        ul.innerHTML = '<li class="text-muted">No contributors yet.</li>';
-        return;
-      }
-      ul.innerHTML = rows
-        .map(
-          (r, i) => `
-        <li>
-          <span><span class="lb-rank">#${i + 1}</span>${escHtml(r.username)}</span>
-          <span><span class="badge badge-blue">${r.points ?? 0} pts</span></span>
-        </li>`
-        )
-        .join('');
-    } catch {
-      ul.innerHTML = '<li class="text-muted">Leaderboard unavailable.</li>';
+  function renderCertificates(certs) {
+    const box = document.getElementById('cert-list');
+    if (!box) return;
+    if (!Array.isArray(certs) || !certs.length) {
+      box.innerHTML = '<span class="text-muted">No certificates yet. Earn points via verified resolutions.</span>';
+      return;
     }
+    const nameMap = {
+      active_citizen: 'Active Citizen Award',
+      city_contributor: 'City Contributor Certificate',
+    };
+    box.innerHTML = certs
+      .map((c) => {
+        const nm = nameMap[c.cert_type] || c.cert_type;
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-weight:700;">${escHtml(nm)}</div>
+            <div class="text-muted" style="font-size:.85rem;">Issued ${formatDate(c.issued_at)} · Points: ${
+          c.points_at_issue ?? ''
+        }</div>
+          </div>
+          <a class="btn btn-outline btn-sm" href="/certificates/${c.id}/" target="_blank" rel="noopener">View</a>
+        </div>`;
+      })
+      .join('');
   }
-  await loadLeaderboard();
 
   let allReports = [];
   let currentPage = 1;
@@ -266,11 +271,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       upvoteBtn.classList.toggle('voted', !!issue.user_voted);
       upvoteBtn.disabled = !!issue.user_voted;
 
+      const verifyLabel = document.getElementById('verify-label');
+      if (verifyLabel) verifyLabel.textContent = issue.verification_label || '—';
+      const vOk = issue.status === 'resolved';
+      const btnC = document.getElementById('verify-confirm-btn');
+      const btnD = document.getElementById('verify-dispute-btn');
+      if (btnC) {
+        btnC.disabled = !vOk || issue.user_verification === 'confirm';
+        btnC.classList.toggle('voted', issue.user_verification === 'confirm');
+      }
+      if (btnD) {
+        btnD.disabled = !vOk || issue.user_verification === 'dispute';
+        btnD.classList.toggle('voted', issue.user_verification === 'dispute');
+      }
+
       Modal.open('issue-modal');
     } catch {
       Toast.show('Could not load issue details.', 'error');
     }
   }
+
+  async function sendVerify(choice) {
+    if (!currentIssueId) return;
+    try {
+      const res = await API.post('/api/issues/' + currentIssueId + '/verify/', { choice });
+      document.getElementById('verify-label').textContent = res.verification_label || '—';
+      document.getElementById('verify-confirm-btn').disabled = choice === 'confirm';
+      document.getElementById('verify-dispute-btn').disabled = choice === 'dispute';
+      Toast.show('Verification saved.', 'success');
+      await loadReports();
+      await loadStats();
+    } catch (err) {
+      Toast.show(err.message || 'Could not verify.', 'error');
+    }
+  }
+
+  document.getElementById('verify-confirm-btn')?.addEventListener('click', () => sendVerify('confirm'));
+  document.getElementById('verify-dispute-btn')?.addEventListener('click', () => sendVerify('dispute'));
 
   document.getElementById('modal-upvote-btn')?.addEventListener('click', async () => {
     if (!currentIssueId) return;
@@ -316,7 +353,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadStats();
     await loadReports();
     await loadMapMarkers();
-    await loadLeaderboard();
   });
 });
 
