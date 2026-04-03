@@ -185,14 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const formData = new FormData(form);
       const res = await API.post('/report/', formData);
       document.getElementById('success-alert')?.classList.add('show');
+      if (res.id != null) {
+        window.open('/reports/' + res.id + '/pdf/', '_blank', 'noopener,noreferrer');
+      }
       if (res.is_duplicate) {
         document.getElementById('dup-alert')?.classList.add('show');
-        Toast.show('Saved — similar issues may already exist nearby.', 'warn');
+        Toast.show('Saved — similar issues may already exist nearby. Your grievance letter PDF should download.', 'warn');
       } else {
         document.getElementById('dup-alert')?.classList.remove('show');
-        Toast.show('Issue submitted!', 'success');
+        Toast.show('Issue submitted — downloading your offline grievance letter (PDF).', 'success');
       }
-      setTimeout(() => (window.location.href = '/my-reports/'), 1600);
+      setTimeout(() => (window.location.href = '/my-reports/'), 2200);
     } catch (err) {
       Toast.show(err.message || 'Submission failed.', 'error');
     } finally {

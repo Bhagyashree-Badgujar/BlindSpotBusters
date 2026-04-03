@@ -45,6 +45,10 @@ class Issue(models.Model):
 
     lat = models.FloatField(blank=True, null=True)
     lng = models.FloatField(blank=True, null=True)
+    location_label = models.CharField(max_length=200, blank=True, default='')
+
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(blank=True, null=True)
 
     # Evidence authenticity (EXIF from before photo)
     before_img_captured_at = models.DateTimeField(blank=True, null=True)

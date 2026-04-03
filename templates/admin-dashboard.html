@@ -186,13 +186,13 @@
 </div>
 
 <div class="modal-overlay" id="status-modal">
-  <div class="modal" style="max-width:460px;">
+  <div class="modal" style="max-width:500px;">
     <div class="modal-header">
-      <div class="modal-title">Route &amp; status</div>
+      <div class="modal-title">Route, status &amp; after photo</div>
       <button type="button" class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <p class="text-muted" style="font-size:.9rem;margin-bottom:16px;" id="status-modal-issue-title"></p>
+      <p class="text-muted" style="font-size:.9rem;margin-bottom:14px;" id="status-modal-issue-title"></p>
       <div class="form-group">
         <label class="form-label">Status</label>
         <select class="form-select" id="new-status-select">
@@ -213,33 +213,21 @@
           <option value="low">Low</option>
         </select>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-outline modal-close">Cancel</button>
-      <button type="button" class="btn btn-primary metallic-shine" id="confirm-status-btn">Save changes</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="after-img-modal">
-  <div class="modal" style="max-width:440px;">
-    <div class="modal-header">
-      <div class="modal-title">Upload after photo</div>
-      <button type="button" class="modal-close">✕</button>
-    </div>
-    <div class="modal-body">
-      <p class="text-muted" style="font-size:.88rem;margin-bottom:16px;" id="after-img-issue-title"></p>
-      <div class="file-upload-area" id="after-upload-area">
-        <input type="file" id="after-img-file" accept="image/*" />
-        <div class="file-upload-icon">📸</div>
-        <div style="font-weight:600;margin-bottom:4px;">Resolution evidence</div>
-        <div class="form-hint">Shows citizens the fix</div>
-        <div class="file-preview"><img src="" alt="After preview" /></div>
+      <div class="form-group" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+        <label class="form-label">After photo (optional)</label>
+        <p class="text-muted" style="font-size:.82rem;margin:0 0 10px;">Upload resolution evidence in the same step — no separate action needed.</p>
+        <div class="file-upload-area" id="after-upload-area">
+          <input type="file" id="after-img-file" accept="image/*" />
+          <div class="file-upload-icon">📸</div>
+          <div style="font-weight:600;margin-bottom:4px;">Resolution evidence</div>
+          <div class="form-hint">Shows citizens the fix</div>
+          <div class="file-preview"><img src="" alt="After preview" /></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-outline modal-close">Cancel</button>
-      <button type="button" class="btn btn-accent" id="confirm-after-img-btn">Upload</button>
+      <button type="button" class="btn btn-primary metallic-shine" id="confirm-status-btn">Save routing &amp; photo</button>
     </div>
   </div>
 </div>

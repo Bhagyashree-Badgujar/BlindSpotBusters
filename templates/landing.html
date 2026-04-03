@@ -178,7 +178,24 @@
               var g = document.getElementById('news-grid');
               if (!g || !Array.isArray(items)) return;
               g.innerHTML = items.map(function (it) {
-                return '<article class="glass-card tilt-hover news-card"><div class="news-tag">' + (it.tag || 'Update') + '</div><h3>' + (it.title || '') + '</h3><p class="text-muted-block">' + (it.summary || '') + '</p><span class="news-region">' + (it.region || '') + '</span></article>';
+                var dateLine = it.published_at
+                  ? '<time class="news-date" style="display:block;font-size:.78rem;margin:6px 0 4px;opacity:.88;">' +
+                    it.published_at +
+                    '</time>'
+                  : '';
+                return (
+                  '<article class="glass-card tilt-hover news-card"><div class="news-tag">' +
+                  (it.tag || 'Update') +
+                  '</div>' +
+                  dateLine +
+                  '<h3>' +
+                  (it.title || '') +
+                  '</h3><p class="text-muted-block">' +
+                  (it.summary || '') +
+                  '</p><span class="news-region">' +
+                  (it.region || '') +
+                  '</span></article>'
+                );
               }).join('');
             })
             .catch(function () {});

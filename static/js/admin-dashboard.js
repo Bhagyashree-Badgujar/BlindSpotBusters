@@ -113,7 +113,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   let issuesPage = 1;
   const I_PER_PAGE = 10;
   let pendingStatusId = null;
-  let pendingAfterImgId = null;
 
   async function loadIssues() {
     try {
@@ -211,10 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         </td>
         <td>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button type="button" class="btn btn-outline btn-sm change-status-btn" data-id="${issue.id}">Route</button>
-            <button type="button" class="btn btn-outline btn-sm upload-after-btn" data-id="${issue.id}">After</button>
-          </div>
+          <button type="button" class="btn btn-outline btn-sm change-status-btn" data-id="${issue.id}">Route &amp; after</button>
         </td>
       </tr>`
       )
@@ -222,9 +218,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     tbody.querySelectorAll('.change-status-btn').forEach((btn) => {
       btn.addEventListener('click', () => openStatusModal(btn.dataset.id));
-    });
-    tbody.querySelectorAll('.upload-after-btn').forEach((btn) => {
-      btn.addEventListener('click', () => openAfterImgModal(btn.dataset.id));
     });
 
     renderPagination(
@@ -244,6 +237,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('status-modal-issue-title').textContent = issue ? issue.title : '';
     const stSel = document.getElementById('new-status-select');
     const prSel = document.getElementById('priority-select');
+    const fileInput = document.getElementById('after-img-file');
+    if (fileInput) fileInput.value = '';
     if (issue) {
       stSel.value = issue.status;
       document.getElementById('department-input').value = issue.department || '';
@@ -256,6 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       prSel.disabled = false;
     }
     Modal.open('status-modal');
+    initFileUpload(document.getElementById('after-upload-area'));
   }
 
   document.getElementById('confirm-status-btn')?.addEventListener('click', async () => {
@@ -263,46 +259,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newStatus = document.getElementById('new-status-select').value;
     const dept = document.getElementById('department-input').value || '';
     const pri = document.getElementById('priority-select').value;
+    const fileInput = document.getElementById('after-img-file');
+    const file = fileInput?.files?.[0];
     try {
       await API.patch(`/api/admin/issues/${pendingStatusId}/`, {
         status: newStatus,
         department: dept,
         priority: pri,
       });
-      Toast.show('Issue updated', 'success');
+      if (file) {
+        const fd = new FormData();
+        fd.append('after_img', file);
+        await API.post(`/api/admin/issues/${pendingStatusId}/after-image/`, fd);
+        Toast.show('Routing saved and after photo uploaded', 'success');
+      } else {
+        Toast.show('Issue updated', 'success');
+      }
       Modal.close('status-modal');
       await loadIssues();
       await loadStats();
       mapInitialized = false;
     } catch (err) {
       Toast.show(err.message || 'Update failed.', 'error');
-    }
-  });
-
-  function openAfterImgModal(id) {
-    pendingAfterImgId = id;
-    const issue = allIssues.find((i) => String(i.id) === String(id));
-    document.getElementById('after-img-issue-title').textContent = issue ? issue.title : '';
-    Modal.open('after-img-modal');
-    initFileUpload(document.getElementById('after-upload-area'));
-  }
-
-  document.getElementById('confirm-after-img-btn')?.addEventListener('click', async () => {
-    if (!pendingAfterImgId) return;
-    const fileInput = document.getElementById('after-img-file');
-    if (!fileInput.files[0]) {
-      Toast.show('Select an image.', 'warn');
-      return;
-    }
-    const fd = new FormData();
-    fd.append('after_img', fileInput.files[0]);
-    try {
-      await API.post(`/api/admin/issues/${pendingAfterImgId}/after-image/`, fd);
-      Toast.show('After photo uploaded', 'success');
-      Modal.close('after-img-modal');
-      await loadIssues();
-    } catch (err) {
-      Toast.show(err.message || 'Upload failed.', 'error');
     }
   });
 

@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -13,6 +14,8 @@ from django.views.decorators.http import require_http_methods
 from users.models import Certificate, UserProfile, UserNotification
 
 from .models import Issue, IssueMedia, IssueVerification, IssueVote
+
+logger = logging.getLogger(__name__)
 
 # Domain priority for admin sorting: Water > Potholes > Garbage > Others (streetlight grouped with low tier)
 CAT_DOMAIN_ORDER = {'water': 4, 'potholes': 3, 'garbage': 2, 'streetlight': 1, 'others': 1}
@@ -191,9 +194,11 @@ def _issue_dict(issue, request):
         'priority': issue.priority,
         'department': issue.department,
         'created_at': issue.created_at.isoformat() if issue.created_at else None,
-        'updated_at': issue.created_at.isoformat() if issue.created_at else None,
+        'updated_at': issue.updated_at.isoformat() if issue.updated_at else None,
+        'resolved_at': issue.resolved_at.isoformat() if issue.resolved_at else None,
         'lat': issue.lat,
         'lng': issue.lng,
+        'location_label': (issue.location_label or '')[:200],
         'before_img': before,
         'after_img': after,
         'media': _media_list(issue, request),
@@ -221,16 +226,19 @@ def _notify_in_app(user, kind, title, body, issue_id=None):
 
 
 def _notify_issue_resolved_emails(issue):
-    """Email reporter + everyone who upvoted the issue."""
+    """Email the reporter at their registered account email, and supporters who upvoted."""
     from django.utils import timezone as dj_tz
 
     now = dj_tz.now()
-    ts = now.strftime('%Y-%m-%d %H:%M:%S %Z')
+    issue.refresh_from_db(fields=['resolved_at'])
+    if issue.resolved_at:
+        ts = dj_tz.localtime(issue.resolved_at).strftime('%d %B %Y %H:%M %Z')
+    else:
+        ts = dj_tz.localtime(now).strftime('%d %B %Y %H:%M %Z')
     desc = (issue.description or '').strip()
     summary = (desc[:1200] + ('…' if len(desc) > 1200 else '')) if desc else '(No description on file.)'
     subject = f'[CivicLens] Resolved — Issue #{issue.id}: {issue.title[:50]}'
-    body = (
-        f'Your civic issue has been marked RESOLVED by the administration.\n'
+    common = (
         f'────────────────────────────────────────\n'
         f'Issue ID:        #{issue.id}\n'
         f'Title:           {issue.title}\n'
@@ -243,14 +251,23 @@ def _notify_issue_resolved_emails(issue):
         f'Open CivicLens to crowd-verify the fix (Confirm resolved / Still not fixed) if applicable.\n'
         f'— CivicLens Smart Governance\n'
     )
-    emails = set()
-    if issue.user_id and issue.user.email:
-        emails.add(issue.user.email.strip())
+    reporter_email = (issue.user.email or '').strip() if issue.user_id else ''
+    if reporter_email:
+        reporter_body = (
+            f'This message was sent to your official email on file for your CivicLens account.\n\n'
+            f'Your submitted civic issue has been marked RESOLVED by the administration.\n\n'
+            f'{common}'
+        )
+        _safe_send_mail(subject, reporter_body, reporter_email)
     for row in IssueVote.objects.filter(issue=issue).select_related('user'):
-        if row.user.email:
-            emails.add(row.user.email.strip())
-    for em in emails:
-        _safe_send_mail(subject, body, em)
+        em = (row.user.email or '').strip()
+        if not em or em == reporter_email:
+            continue
+        supporter_body = (
+            f'An issue you supported on CivicLens has been marked RESOLVED.\n\n'
+            f'{common}'
+        )
+        _safe_send_mail(subject, supporter_body, em)
     if issue.user_id:
         _notify_in_app(
             issue.user,
@@ -279,10 +296,10 @@ def _safe_send_mail(subject, message, to_email):
             message,
             getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'no-reply@civiclens.local',
             [to_email],
-            fail_silently=True,
+            fail_silently=False,
         )
-    except Exception:
-        return
+    except Exception as exc:
+        logger.warning('Outbound email failed for %s: %s', to_email, exc)
 
 
 def _recompute_verification(issue):
@@ -467,6 +484,8 @@ def create_issue(request):
 
     priority = classify_priority_from_text(description + ' ' + title, nearby_dup, title_dup)
 
+    location_label = (request.POST.get('location_label') or '').strip()[:200]
+
     before_img = request.FILES.get('before_img')
     evidence_files = request.FILES.getlist('evidence_files')
 
@@ -476,6 +495,7 @@ def create_issue(request):
         description=description,
         lat=lat,
         lng=lng,
+        location_label=location_label,
         before_img=before_img,
         status='pending',
         category=category,
@@ -810,6 +830,8 @@ def admin_issue_update(request, id):
     if request.method != 'PATCH':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     try:
+        from django.utils import timezone as dj_tz
+
         data = json.loads(request.body or '{}')
         issue = Issue.objects.get(id=id)
         prev_status = issue.status
@@ -822,6 +844,9 @@ def admin_issue_update(request, id):
                 )
             issue.status = st
             fields.append('status')
+            if st == 'resolved' and prev_status != 'resolved':
+                issue.resolved_at = dj_tz.now()
+                fields.append('resolved_at')
         if 'department' in data and isinstance(data.get('department'), str):
             issue.department = (data.get('department') or '')[:120]
             fields.append('department')
@@ -872,10 +897,37 @@ def _pdf_safe_line(text, max_len=9000):
     return s.encode('latin-1', 'replace').decode('latin-1')
 
 
+def _pdf_letter_date(dt):
+    from django.utils import timezone as dj_tz
+
+    if not dt:
+        return '—'
+    local = dj_tz.localtime(dt)
+    return f'{local.day} {local.strftime("%B %Y")}'
+
+
+def _pdf_letterhead_logo_buf():
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    w, h = 168, 48
+    im = Image.new('RGB', (w, h), (15, 23, 42))
+    dr = ImageDraw.Draw(im)
+    dr.rectangle([0, 0, w - 1, h - 1], outline=(56, 189, 248), width=2)
+    dr.text((14, 16), 'CivicLens', fill=(248, 250, 252))
+    buf = BytesIO()
+    im.save(buf, format='PNG')
+    buf.seek(0)
+    return buf
+
+
 @login_required(login_url='/login/')
 @require_http_methods(['GET'])
 def issue_report_pdf(request, id):
-    """PDF export of the citizen's own issue for offline submission."""
+    """Letter-style PDF of the citizen's own issue for offline government submission."""
+    from django.utils import timezone as dj_tz
+
     issue = get_object_or_404(Issue, pk=id, user=request.user)
     try:
         from fpdf import FPDF
@@ -886,36 +938,137 @@ def issue_report_pdf(request, id):
             content_type='text/plain',
         )
 
+    cat_label = dict(Issue.CATEGORY_CHOICES).get(issue.category, issue.category)
+    pri_label = dict(Issue.PRIORITY_CHOICES).get(issue.priority, issue.priority)
+    status_label = dict(Issue.STATUS_CHOICES).get(issue.status, issue.status)
+
+    media_rows = list(issue.extra_media.all().order_by('id'))
+    media_names = []
+    for m in media_rows:
+        name = ''
+        if m.file and getattr(m.file, 'name', None):
+            name = m.file.name.split('/')[-1].split('\\')[-1]
+        media_names.append(f'{m.media_type}: {name or "(file)"}')
+
+    loc_parts = []
+    if (issue.location_label or '').strip():
+        loc_parts.append((issue.location_label or '').strip())
+    if issue.lat is not None and issue.lng is not None:
+        loc_parts.append(f'GPS {issue.lat:.6f}, {issue.lng:.6f}')
+    location_line = ' · '.join(loc_parts) if loc_parts else '—'
+
+    submitted_human = _pdf_letter_date(issue.created_at)
+    generated_human = _pdf_letter_date(dj_tz.now())
+    generated_precise = dj_tz.localtime(dj_tz.now()).strftime('%d %B %Y %H:%M %Z')
+
     pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=14)
+    pdf.set_auto_page_break(auto=True, margin=16)
+    pdf.set_margins(18, 18, 18)
     pdf.add_page()
-    pdf.set_font('helvetica', 'B', 15)
-    pdf.cell(0, 10, _pdf_safe_line('CivicLens — Citizen issue report'), ln=1)
+    try:
+        pdf.image(_pdf_letterhead_logo_buf(), x=18, y=16, w=46)
+    except Exception:
+        pdf.set_xy(18, 22)
+        pdf.set_font('helvetica', 'B', 14)
+        pdf.cell(0, 8, _pdf_safe_line('CivicLens'), ln=1)
+
+    pdf.set_xy(72, 18)
+    pdf.set_font('helvetica', 'B', 16)
+    pdf.cell(0, 7, _pdf_safe_line('CivicLens'), ln=1)
+    pdf.set_x(72)
+    pdf.set_font('helvetica', '', 9)
+    pdf.cell(0, 5, _pdf_safe_line('Smart civic reporting — citizen grievance record'), ln=1)
+
+    pdf.set_xy(pdf.l_margin, 54)
     pdf.set_font('helvetica', '', 10)
+    pdf.cell(0, 6, _pdf_safe_line(f'Date: {submitted_human}'), ln=1)
+    pdf.ln(4)
+
+    text_w = pdf.epw
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('helvetica', 'B', 11)
+    pdf.multi_cell(text_w, 6, _pdf_safe_line('To,'))
+    pdf.set_font('helvetica', '', 10)
+    pdf.set_x(pdf.l_margin)
+    pdf.multi_cell(text_w, 5, _pdf_safe_line('The Concerned Public Authority / Municipal Office'))
+    pdf.set_x(pdf.l_margin)
+    pdf.multi_cell(text_w, 5, _pdf_safe_line('(For offline follow-up if the matter is not resolved online)'))
+    pdf.ln(3)
+
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('helvetica', 'B', 10)
+    pdf.multi_cell(
+        text_w,
+        6,
+        _pdf_safe_line(f'Subject: Formal record of civic grievance — CivicLens reference #{issue.id}'),
+    )
     pdf.ln(2)
 
-    lines = [
-        ('Issue ID', f'#{issue.id}'),
-        ('Title', issue.title),
-        ('Status', issue.status),
-        ('Category', issue.category),
-        ('Priority (system)', issue.priority),
-        ('Department', issue.department or '—'),
-        ('Submitted', issue.created_at.isoformat() if issue.created_at else '—'),
-        ('Location', f'{issue.lat}, {issue.lng}' if issue.lat is not None else '—'),
-        ('Verification', issue.verification_state),
-        ('Upvotes', str(issue.votes)),
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('helvetica', '', 10)
+    intro = (
+        'Sir/Madam,\n\n'
+        'I am submitting the following report through the CivicLens civic engagement platform. '
+        'Please find all particulars below for your records. I request appropriate action; '
+        'this letter may be used for offline submission if the issue remains unresolved through online channels for an extended period.\n'
+    )
+    pdf.multi_cell(text_w, 5, _pdf_safe_line(intro))
+    pdf.ln(2)
+
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('helvetica', 'B', 10)
+    pdf.cell(0, 6, _pdf_safe_line('Report details'), ln=1)
+    pdf.set_font('helvetica', '', 10)
+
+    rows = [
+        ('Reference ID', f'#{issue.id}'),
+        ('Submitted on', submitted_human),
+        ('Reporter (account)', request.user.username),
+        ('Official email on file', (request.user.email or '—').strip() or '—'),
+        ('Title', issue.title or '—'),
+        ('Category', str(cat_label)),
+        ('Priority (system)', str(pri_label)),
+        ('Current status', str(status_label)),
+        ('Department / route', issue.department or '—'),
+        ('Location', location_line),
         ('Description', issue.description or '—'),
+        ('Before photo attached', 'Yes' if issue.before_img else 'No'),
+        ('Photo capture (EXIF)', issue.before_img_captured_at.isoformat() if issue.before_img_captured_at else '—'),
+        ('Additional evidence files', '; '.join(media_names) if media_names else 'None'),
+        ('Upvotes (community support)', str(issue.votes)),
+        ('Crowd verification state', issue.verification_state),
     ]
-    for label, val in lines:
-        pdf.set_font('helvetica', 'B', 10)
-        pdf.multi_cell(0, 6, _pdf_safe_line(label + ':'))
-        pdf.set_font('helvetica', '', 10)
-        pdf.multi_cell(0, 5, _pdf_safe_line(val))
+    if issue.resolved_at:
+        rows.append(('Marked resolved on', _pdf_letter_date(issue.resolved_at)))
+
+    for label, val in rows:
+        pdf.set_x(pdf.l_margin)
+        pdf.set_font('helvetica', 'B', 9)
+        pdf.multi_cell(text_w, 5, _pdf_safe_line(label + ':'))
+        pdf.set_x(pdf.l_margin)
+        pdf.set_font('helvetica', '', 9)
+        pdf.multi_cell(text_w, 5, _pdf_safe_line(val))
         pdf.ln(1)
 
+    pdf.ln(4)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('helvetica', '', 10)
+    pdf.multi_cell(text_w, 5, _pdf_safe_line('Yours faithfully,'))
+    pdf.ln(6)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font('helvetica', 'B', 10)
+    pdf.multi_cell(text_w, 5, _pdf_safe_line(request.user.get_full_name() or request.user.username))
     pdf.set_font('helvetica', 'I', 8)
-    pdf.multi_cell(0, 4, _pdf_safe_line('Generated from CivicLens for offline records. Not a legal instrument.'))
+    pdf.ln(6)
+    pdf.set_x(pdf.l_margin)
+    pdf.multi_cell(
+        text_w,
+        4,
+        _pdf_safe_line(
+            f'Letter generated from CivicLens on {generated_human} ({generated_precise}). '
+            'This document is a citizen-generated record from the platform; it is not itself a government order or legal instrument.'
+        ),
+    )
 
     out = pdf.output()
     if isinstance(out, (bytearray, memoryview)):
@@ -923,31 +1076,38 @@ def issue_report_pdf(request, id):
     elif isinstance(out, str):
         out = out.encode('latin-1')
     resp = HttpResponse(out, content_type='application/pdf')
-    resp['Content-Disposition'] = f'attachment; filename="civiclens-issue-{issue.id}.pdf"'
+    resp['Content-Disposition'] = f'attachment; filename="civiclens-grievance-letter-{issue.id}.pdf"'
     return resp
 
 
 def public_news(request):
     """Location-aware government-style updates for landing page."""
+    from django.utils import timezone as dj_tz
+
     region = (request.GET.get('region') or '').strip() or 'India'
+    now = dj_tz.localtime(dj_tz.now())
+    day_stamp = f'{now.day} {now.strftime("%B %Y")}'
     items = [
         {
             'title': 'Municipal SLA alignment — civic backlog review',
             'summary': 'Departments prioritise water and road safety tickets synced through CivicLens analytics.',
             'region': region,
             'tag': 'Governance',
+            'published_at': day_stamp,
         },
         {
             'title': 'Field verification teams expanded',
             'summary': 'Photo evidence review and EXIF checks strengthen authenticity on high-impact reports.',
             'region': 'National',
             'tag': 'Operations',
+            'published_at': day_stamp,
         },
         {
-            'title': 'Citizen verification pilot — week ahead',
-            'summary': 'Crowd confirmations now feed verified badges and certificates for active residents.',
+            'title': 'Citizen verification and certificates',
+            'summary': 'Crowd confirmations feed verified badges and certificates for active residents.',
             'region': region,
             'tag': 'Community',
+            'published_at': day_stamp,
         },
     ]
     return JsonResponse(items, safe=False)
