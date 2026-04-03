@@ -8,9 +8,12 @@ from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from users.models import Certificate, UserProfile
+from users.models import Certificate, UserProfile, UserNotification
 
 from .models import Issue, IssueMedia, IssueVerification, IssueVote
+
+# Domain priority for admin sorting: Water > Potholes > Garbage > Streetlight > Others
+CAT_DOMAIN_ORDER = {'water': 5, 'potholes': 4, 'garbage': 3, 'streetlight': 2, 'others': 1}
 
 
 def api_login_required(view):
@@ -51,6 +54,49 @@ def classify_category_from_text(text):
         if any(k in t for k in keys):
             return cat
     return 'others'
+
+
+def _exif_from_upload(file_obj):
+    """
+    Returns (captured_at_aware, suspicious: bool, note: str).
+    Flags photos whose EXIF capture date is older than ~18 months as suspicious.
+    """
+    if not file_obj:
+        return None, False, ''
+    try:
+        from PIL import Image
+        from PIL.ExifTags import TAGS
+
+        file_obj.seek(0)
+        img = Image.open(file_obj)
+        exif = img.getexif() or {}
+        raw_dt = None
+        for tag_id, val in exif.items():
+            tag = TAGS.get(tag_id, tag_id)
+            if tag in ('DateTimeOriginal', 'DateTime'):
+                raw_dt = val
+                break
+        file_obj.seek(0)
+        if not raw_dt or not isinstance(raw_dt, str):
+            return None, False, 'No EXIF date'
+        from datetime import datetime
+
+        from django.utils import timezone
+
+        naive = datetime.strptime(raw_dt.replace('-', ':')[:19], '%Y:%m:%d %H:%M:%S')
+        aware = timezone.make_aware(naive, timezone.get_current_timezone())
+        age_days = (timezone.now() - aware).days
+        suspicious = age_days > 550
+        note = f'EXIF capture {aware.date().isoformat()}'
+        if suspicious:
+            note += ' — old photo (verify authenticity)'
+        return aware, suspicious, note
+    except Exception:
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
+        return None, False, 'EXIF unavailable'
 
 
 def classify_priority_from_text(text, nearby_dup, title_dup):
@@ -153,7 +199,51 @@ def _issue_dict(issue, request):
         'verification_state': v_state,
         'verification_label': v_label,
         'is_duplicate': False,
+        'photo_exif_at': issue.before_img_captured_at.isoformat() if issue.before_img_captured_at else None,
+        'image_exif_suspicious': bool(issue.image_exif_suspicious),
+        'image_exif_note': (issue.image_exif_note or '')[:200],
     }
+
+
+def _notify_in_app(user, kind, title, body, issue_id=None):
+    if user is None:
+        return
+    UserNotification.objects.create(user=user, kind=kind, title=title, body=body, issue_id=issue_id)
+
+
+def _notify_issue_resolved_emails(issue):
+    """Email reporter + everyone who upvoted the issue."""
+    subject = f'CivicLens resolved: {issue.title[:60]}'
+    body = (
+        f'Issue #{issue.id}: {issue.title}\n\n'
+        f'Status: RESOLVED by the department.\n'
+        f'Thank you for participating in CivicLens.\n'
+    )
+    emails = set()
+    if issue.user_id and issue.user.email:
+        emails.add(issue.user.email.strip())
+    for row in IssueVote.objects.filter(issue=issue).select_related('user'):
+        if row.user.email:
+            emails.add(row.user.email.strip())
+    for em in emails:
+        _safe_send_mail(subject, body, em)
+    if issue.user_id:
+        _notify_in_app(
+            issue.user,
+            'resolved',
+            f'Resolved: {issue.title[:80]}',
+            'Your issue was marked resolved. Open CivicLens to verify or view details.',
+            issue_id=issue.id,
+        )
+    for row in IssueVote.objects.filter(issue=issue).select_related('user'):
+        if row.user_id != issue.user_id:
+            _notify_in_app(
+                row.user,
+                'resolved',
+                f'Issue you supported was resolved: {issue.title[:60]}',
+                f'Issue #{issue.id} is now resolved.',
+                issue_id=issue.id,
+            )
 
 
 def _safe_send_mail(subject, message, to_email):
@@ -362,6 +452,14 @@ def create_issue(request):
         priority=priority,
     )
 
+    if before_img:
+        cap, sus, note = _exif_from_upload(before_img)
+        Issue.objects.filter(pk=issue.pk).update(
+            before_img_captured_at=cap,
+            image_exif_suspicious=sus,
+            image_exif_note=(note or '')[:200],
+        )
+
     for f in evidence_files:
         if not f:
             continue
@@ -369,6 +467,7 @@ def create_issue(request):
         IssueMedia.objects.create(issue=issue, file=f, media_type=mt)
 
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    prev_points = profile.civic_points
     pts = 20
     if before_img:
         pts += 15
@@ -383,6 +482,28 @@ def create_issue(request):
         badges.append('evidence_pro')
     profile.badges = badges
     profile.save(update_fields=['civic_points', 'badges'])
+
+    if profile.civic_points >= 50 and prev_points < 50:
+        cert, created = Certificate.objects.get_or_create(
+            user=request.user,
+            cert_type='civic_spark',
+            defaults={'points_at_issue': profile.civic_points},
+        )
+        if created:
+            _notify_in_app(
+                request.user,
+                'points',
+                'You unlocked a Civic Spark certificate (50+ points)',
+                'Download your certificate from the dashboard.',
+                issue_id=issue.id,
+            )
+            if request.user.email:
+                _safe_send_mail(
+                    'CivicLens: Civic Spark certificate unlocked',
+                    f'Congratulations {request.user.username}.\n\n'
+                    f'You reached {profile.civic_points} civic points. Open your dashboard to view and download your certificate.\n',
+                    request.user.email,
+                )
 
     return JsonResponse(
         {
@@ -514,6 +635,8 @@ def verify_issue(request, id):
     except Issue.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
 
+    prev_verification = issue.verification_state
+
     if issue.status != 'resolved':
         return JsonResponse({'error': 'Verification is available only for resolved issues'}, status=400)
 
@@ -538,6 +661,21 @@ def verify_issue(request, id):
 
     state, confirm, dispute = _recompute_verification(issue)
     _maybe_award_verification_points_and_certificate(issue)
+
+    if state == 'verified' and prev_verification != 'verified' and issue.user_id:
+        _notify_in_app(
+            issue.user,
+            'verified',
+            f'Crowd verified: {issue.title[:70]}',
+            'Citizens confirmed your resolved issue. Thank you for improving the city.',
+            issue_id=issue.id,
+        )
+        if issue.user.email:
+            _safe_send_mail(
+                'CivicLens: Issue crowd-verified',
+                f'Hello {issue.user.username},\n\nYour resolved issue "{issue.title}" has been crowd-verified on CivicLens.\n',
+                issue.user.email,
+            )
 
     label = 'Unverified'
     if state == 'verified':
@@ -576,6 +714,16 @@ def admin_stats(request):
         max_points=Max('civic_points'),
         total_points=Sum('civic_points'),
     )
+    # Mutually exclusive donut segments (verified/disputed apply to resolved pipeline)
+    donut_issue_mix = {
+        'pending': Issue.objects.filter(status='pending').count(),
+        'in_progress': Issue.objects.filter(status='in_progress').count(),
+        'resolved_unverified': Issue.objects.filter(
+            status='resolved', verification_state='unverified'
+        ).count(),
+        'verified': Issue.objects.filter(verification_state='verified').count(),
+        'disputed': Issue.objects.filter(verification_state='disputed').count(),
+    }
     return JsonResponse(
         {
             'users': User.objects.filter(is_staff=False).count(),
@@ -589,6 +737,7 @@ def admin_stats(request):
             'by_priority': by_priority,
             'by_status': by_status,
             'by_verification': by_verification,
+            'donut_issue_mix': donut_issue_mix,
             'max_points': points.get('max_points') or 0,
             'total_points': points.get('total_points') or 0,
         }
@@ -606,7 +755,13 @@ def admin_issues(request):
         dup = Issue.objects.filter(title__icontains=issue.title[:40]).exclude(pk=issue.pk).exists()
         d['is_duplicate'] = dup
         data.append(d)
-    data.sort(key=lambda x: (-x['impact_score'], -x['id']))
+
+    def _admin_sort_key(d):
+        cat = (d.get('category') or 'others').lower()
+        rank = CAT_DOMAIN_ORDER.get(cat, 0)
+        return (-rank, -float(d.get('impact_score') or 0), -int(d['id']))
+
+    data.sort(key=_admin_sort_key)
     return JsonResponse(data, safe=False)
 
 
@@ -623,25 +778,24 @@ def admin_issue_update(request, id):
         fields = []
         st = data.get('status')
         if st in ('pending', 'in_progress', 'resolved'):
+            if issue.status == 'resolved' and st != 'resolved':
+                return JsonResponse(
+                    {'error': 'Resolved issues cannot be re-opened'}, status=400
+                )
             issue.status = st
             fields.append('status')
         if 'department' in data and isinstance(data.get('department'), str):
             issue.department = (data.get('department') or '')[:120]
             fields.append('department')
         pr = data.get('priority')
-        if pr in ('high', 'medium', 'low'):
+        if pr in ('high', 'medium', 'low') and issue.status != 'resolved':
             issue.priority = pr
             fields.append('priority')
         if fields:
             issue.save(update_fields=fields)
         if prev_status != issue.status and issue.status == 'resolved':
-            # notify reporter
-            if issue.user_id and issue.user.email:
-                _safe_send_mail(
-                    'CivicLens: Your issue is marked resolved',
-                    f'Hello {issue.user.username},\n\nYour reported issue \"{issue.title}\" has been marked as RESOLVED by the department.\n\nYou can now crowd-verify it in CivicLens using: Confirm resolved / Still not fixed.\n',
-                    issue.user.email,
-                )
+            issue.refresh_from_db()
+            _notify_issue_resolved_emails(issue)
         return JsonResponse({'status': 'updated'})
     except Issue.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
@@ -673,3 +827,29 @@ def suggest_category(request):
     cat = classify_category_from_text(q)
     pr = classify_priority_from_text(q, False, False)
     return JsonResponse({'category': cat, 'priority_hint': pr})
+
+
+def public_news(request):
+    """Location-aware government-style updates for landing page."""
+    region = (request.GET.get('region') or '').strip() or 'India'
+    items = [
+        {
+            'title': 'Municipal SLA alignment — civic backlog review',
+            'summary': 'Departments prioritise water and road safety tickets synced through CivicLens analytics.',
+            'region': region,
+            'tag': 'Governance',
+        },
+        {
+            'title': 'Field verification teams expanded',
+            'summary': 'Photo evidence review and EXIF checks strengthen authenticity on high-impact reports.',
+            'region': 'National',
+            'tag': 'Operations',
+        },
+        {
+            'title': 'Citizen verification pilot — week ahead',
+            'summary': 'Crowd confirmations now feed verified badges and certificates for active residents.',
+            'region': region,
+            'tag': 'Community',
+        },
+    ]
+    return JsonResponse(items, safe=False)

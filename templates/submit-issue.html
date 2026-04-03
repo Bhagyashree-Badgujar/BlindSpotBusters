@@ -10,7 +10,7 @@
 <nav class="navbar">
   <div class="navbar-inner">
     <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
-      <div class="brand-icon brand-icon-glow">◈</div>
+      <img src="{% static 'img/civiclens-logo.svg' %}" alt="CivicLens" style="width:34px;height:34px;" />
       <span class="brand-text-gradient">CivicLens</span>
     </a>
     <div class="navbar-nav">
@@ -52,10 +52,6 @@
       <div class="alert alert-success" id="success-alert">
         Issue submitted successfully. Redirecting…
       </div>
-      <div class="alert alert-info" id="nearby-alert">
-        📍 Similar civic issues detected near this location.
-      </div>
-
       <form id="issue-form" method="post" enctype="multipart/form-data" novalidate>
         {% csrf_token %}
         <div style="display:flex;flex-direction:column;gap:18px;">
@@ -75,14 +71,14 @@
           <div class="form-group">
             <label class="form-label" for="title">Issue Title *</label>
             <input class="form-input" type="text" id="title" name="title"
-                   placeholder="Short, specific title" maxlength="200" required />
+                   placeholder="e.g. Pothole on MG Road — Krish Singh" maxlength="200" required />
             <span class="form-error" id="err-title"></span>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="description">Description *</label>
             <textarea class="form-textarea" id="description" name="description"
-                      placeholder="What happened, where, and any safety impacts…"
+                      placeholder="Krish Singh: describe the issue, landmarks, and any safety impact…"
  rows="4" maxlength="2000" required></textarea>
             <span class="form-error" id="err-description"></span>
           </div>

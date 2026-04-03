@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   {% include 'partials/civic-head.html' %}
   <title>About — CivicLens</title>
@@ -10,18 +10,23 @@
     <nav class="navbar navbar-landing">
       <div class="navbar-inner">
         <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
-          <span class="brand-icon brand-icon-glow">◈</span>
+          <img src="{% static 'img/civiclens-logo.svg' %}" alt="CivicLens logo" style="width:36px;height:36px;" />
           <span class="brand-text-gradient">CivicLens</span>
         </a>
         <div class="navbar-nav nav-landing-links">
           <a class="nav-link" href="{% url 'home' %}">Home</a>
+          <a class="nav-link" href="{% url 'submit_issue' %}">Report</a>
+          <a class="nav-link" href="{% url 'track_issue' %}">Track</a>
+          <a class="nav-link" href="{% url 'map_view' %}">Map</a>
+          <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
           <a class="nav-link active" href="{% url 'about' %}">About</a>
           <a class="nav-link" href="{% url 'contact' %}">Contact</a>
-          <a class="nav-link" href="{% url 'map_view' %}">Map</a>
         </div>
         <div class="navbar-right landing-actions">
           <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
           <a class="btn btn-outline btn-sm" href="{% url 'login_page' %}">Login</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'register_page' %}">Register</a>
+          <button type="button" class="hamburger hamburger-landing" id="hamburger-landing" aria-label="Menu">☰</button>
         </div>
       </div>
     </nav>
@@ -38,6 +43,10 @@
         Departments can assign work, upload after photos, and read analytics while citizens track resolutions
         and earn recognition for verified contributions.
       </p>
+      <p class="text-muted-block">
+        Official desk email:
+        <a href="mailto:mangatevinod62@gmail.com">mangatevinod62@gmail.com</a>
+      </p>
       <a class="btn btn-primary metallic-shine" href="{% url 'home' %}">Back to Home</a>
     </div>
   </main>
@@ -46,6 +55,12 @@
       <strong class="brand-text-gradient">CivicLens</strong>
     </div>
   </footer>
+  <script src="{% static 'js/utils.js' %}"></script>
   <script src="{% static 'js/theme.js' %}"></script>
+  <script>
+    document.getElementById('hamburger-landing')?.addEventListener('click', function () {
+      document.querySelector('.nav-landing-links')?.classList.toggle('open');
+    });
+  </script>
 </body>
 </html>

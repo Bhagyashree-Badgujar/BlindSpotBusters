@@ -1603,3 +1603,34 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Landing news */
+.section-news {
+  margin-top: 28px;
+}
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.news-card {
+  padding: 18px 20px;
+}
+.news-card h3 {
+  font-size: 1.05rem;
+  margin: 8px 0 6px;
+  line-height: 1.35;
+}
+.news-tag {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.news-region {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: inline-block;
+  margin-top: 8px;
+}

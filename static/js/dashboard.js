@@ -80,6 +80,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadStats();
 
+  let lastNotifMaxId = 0;
+
+  async function loadNotifications() {
+    const box = document.getElementById('notifications-feed');
+    if (!box) return;
+    try {
+      const rows = await API.get('/api/user/notifications/');
+      if (!Array.isArray(rows) || !rows.length) {
+        box.innerHTML = '<span class="text-muted">No notifications yet.</span>';
+        return;
+      }
+      const maxId = Math.max.apply(
+        null,
+        rows.map((r) => r.id)
+      );
+      if (lastNotifMaxId && maxId > lastNotifMaxId) {
+        const newest = rows.find((r) => r.id === maxId);
+        if (newest && window.Toast) Toast.show(newest.title, 'info');
+      }
+      lastNotifMaxId = maxId;
+      box.innerHTML = rows
+        .slice(0, 8)
+        .map(
+          (n) =>
+            `<div style="padding:8px 0;border-bottom:1px solid var(--border);"><strong>${escHtml(
+              n.title
+            )}</strong><br/><span class="text-muted" style="font-size:.85rem;">${escHtml(n.body || '')}</span></div>`
+        )
+        .join('');
+    } catch {
+      box.innerHTML = '<span class="text-muted">No notifications to display.</span>';
+    }
+  }
+
+  await loadNotifications();
+  setInterval(loadNotifications, 12000);
+
   function renderCertificates(certs) {
     const box = document.getElementById('cert-list');
     if (!box) return;
@@ -88,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     const nameMap = {
+      civic_spark: 'Civic Spark Recognition (50+ Points)',
       active_citizen: 'Active Citizen Award',
       city_contributor: 'City Contributor Certificate',
     };
@@ -180,7 +218,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
     }).addTo(map);
-    markersLayer = L.layerGroup().addTo(map);
   }
 
   async function loadMapMarkers() {
@@ -354,6 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadStats();
     await loadReports();
     await loadMapMarkers();
+    await loadNotifications();
   });
 });
 

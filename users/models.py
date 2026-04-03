@@ -13,6 +13,7 @@ class UserProfile(models.Model):
 
 class Certificate(models.Model):
     CERT_CHOICES = [
+        ('civic_spark', 'Civic Spark Recognition (50+ Points)'),
         ('active_citizen', 'Active Citizen Award'),
         ('city_contributor', 'City Contributor Certificate'),
     ]
@@ -29,3 +30,26 @@ class Certificate(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.cert_type}"
+
+
+class UserNotification(models.Model):
+    KIND_CHOICES = [
+        ('resolved', 'Issue resolved'),
+        ('points', 'Points milestone'),
+        ('verified', 'Issue verified'),
+        ('system', 'System'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='civic_notifications')
+    kind = models.CharField(max_length=16, choices=KIND_CHOICES, default='system')
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    read = models.BooleanField(default=False)
+    issue_id = models.PositiveIntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.title[:40]}"

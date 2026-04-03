@@ -96,7 +96,10 @@
 
       <div class="cert-body">
         <div class="cert-type">
-          {% if cert.cert_type == 'active_citizen' %}Active Citizen Award{% else %}City Contributor Certificate{% endif %}
+          {% if cert.cert_type == 'civic_spark' %}Civic Spark Recognition (50+ Points)
+          {% elif cert.cert_type == 'active_citizen' %}Active Citizen Award
+          {% elif cert.cert_type == 'city_contributor' %}City Contributor Certificate
+          {% else %}CivicLens Certificate{% endif %}
         </div>
         <div class="cert-name">{{ cert.user.get_full_name|default:cert.user.username }}</div>
         <p class="cert-text">

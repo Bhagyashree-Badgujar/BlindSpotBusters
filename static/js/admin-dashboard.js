@@ -31,8 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  let chartStatus = null;
-  let chartVerification = null;
+  let chartDonutMain = null;
 
   async function loadStats() {
     try {
@@ -44,64 +43,56 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('admin-total-points').textContent = data.total_points ?? 0;
       document.getElementById('admin-max-points').textContent = data.max_points ?? 0;
 
-      const ctxS = document.getElementById('admin-chart-status');
-      if (ctxS && window.Chart) {
-        const rows = data.by_status || [];
-        const map = {};
-        rows.forEach((r) => {
-          map[r.status] = r.count || 0;
-        });
-        const labels = ['Pending', 'In progress', 'Resolved'];
-        const values = [map.pending || 0, map.in_progress || 0, map.resolved || 0];
-        if (chartStatus) chartStatus.destroy();
-        chartStatus = new Chart(ctxS, {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Issues',
-                data: values,
-                backgroundColor: ['#f87171', '#fbbf24', '#34d399'],
-                borderRadius: 8,
-              },
-            ],
-          },
-          options: {
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { ticks: { color: getComputedStyle(document.body).color } },
-              y: { ticks: { color: getComputedStyle(document.body).color } },
-            },
-            animation: { duration: 900 },
-          },
-        });
-      }
-
-      const ctxV = document.getElementById('admin-chart-verification');
-      if (ctxV && window.Chart) {
-        const rows = data.by_verification || [];
-        const map = { unverified: 0, verified: 0, disputed: 0 };
-        rows.forEach((r) => {
-          map[r.verification_state] = r.count || 0;
-        });
-        const labels = ['Unverified', 'Verified', 'Disputed'];
-        const values = [map.unverified || 0, map.verified || 0, map.disputed || 0];
-        if (chartVerification) chartVerification.destroy();
-        chartVerification = new Chart(ctxV, {
+      const ctx = document.getElementById('admin-chart-donut-main');
+      if (ctx && window.Chart) {
+        const mix = data.donut_issue_mix || {};
+        const labels = [
+          'Pending',
+          'In progress',
+          'Resolved (unverified)',
+          'Verified',
+          'Disputed',
+        ];
+        const values = [
+          mix.pending || 0,
+          mix.in_progress || 0,
+          mix.resolved_unverified || 0,
+          mix.verified || 0,
+          mix.disputed || 0,
+        ];
+        const colors = ['#f97316', '#eab308', '#38bdf8', '#22c55e', '#a855f7'];
+        const sum = values.reduce((a, b) => a + b, 0);
+        if (chartDonutMain) chartDonutMain.destroy();
+        chartDonutMain = new Chart(ctx, {
           type: 'doughnut',
           data: {
             labels,
             datasets: [
               {
-                data: values.length ? values : [1],
-                backgroundColor: ['rgba(56,189,248,.55)', '#34d399', '#fbbf24'],
-                borderWidth: 0,
+                data: sum ? values : [1],
+                backgroundColor: sum ? colors : ['#cbd5e1'],
+                borderWidth: 2,
+                borderColor: 'rgba(255,255,255,.85)',
+                hoverOffset: 8,
               },
             ],
           },
           options: {
-            plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: getComputedStyle(document.body).color,
+                  boxWidth: 12,
+                  font: { size: 11 },
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: (c) => ` ${c.label}: ${c.raw}`,
+                },
+              },
+            },
             animation: { duration: 900, easing: 'easeOutQuart' },
           },
         });
@@ -126,12 +117,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     filterIssues();
   }
 
+  const CAT_RANK = { water: 5, potholes: 4, garbage: 3, streetlight: 2, others: 1 };
+
+  function sortIssuesClient(arr) {
+    return [...arr].sort((a, b) => {
+      const ra = CAT_RANK[(a.category || 'others').toLowerCase()] || 0;
+      const rb = CAT_RANK[(b.category || 'others').toLowerCase()] || 0;
+      if (rb !== ra) return rb - ra;
+      return (b.impact_score || 0) - (a.impact_score || 0);
+    });
+  }
+
   function filterIssues() {
     const q = (document.getElementById('admin-issue-search')?.value || '').toLowerCase();
     const s = document.getElementById('admin-issue-status')?.value || '';
-    const filtered = allIssues.filter(
-      (i) =>
-        (!q || i.title.toLowerCase().includes(q) || String(i.id).includes(q)) && (!s || i.status === s)
+    const filtered = sortIssuesClient(
+      allIssues.filter(
+        (i) =>
+          (!q || i.title.toLowerCase().includes(q) || String(i.id).includes(q)) && (!s || i.status === s)
+      )
     );
     renderIssuesTable(filtered, 1);
   }
@@ -152,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const slice = issues.slice(start, start + I_PER_PAGE);
 
     if (!slice.length) {
-      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">No issues found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted);">No issues found.</td></tr>`;
       document.getElementById('admin-issues-pagination').innerHTML = '';
       return;
     }
@@ -180,6 +184,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td style="font-size:.85rem;">${esc(issue.user || '—')}</td>
         <td>${issue.votes ?? 0}</td>
         <td>${statusBadge(issue.status)}</td>
+        <td style="font-size:.75rem;max-width:120px;">
+          ${
+            issue.image_exif_suspicious
+              ? '<span class="badge badge-pending" title="' +
+                esc(issue.image_exif_note || '') +
+                '">⚠ Old EXIF</span>'
+              : issue.photo_exif_at
+                ? '<span class="badge badge-resolved" title="' +
+                  esc(issue.image_exif_note || '') +
+                  '">OK</span>'
+                : '<span class="text-muted">—</span>'
+          }
+        </td>
         <td>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button type="button" class="btn btn-outline btn-sm change-status-btn" data-id="${issue.id}">Route</button>
@@ -212,10 +229,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     pendingStatusId = id;
     const issue = allIssues.find((i) => String(i.id) === String(id));
     document.getElementById('status-modal-issue-title').textContent = issue ? issue.title : '';
+    const stSel = document.getElementById('new-status-select');
+    const prSel = document.getElementById('priority-select');
     if (issue) {
-      document.getElementById('new-status-select').value = issue.status;
+      stSel.value = issue.status;
       document.getElementById('department-input').value = issue.department || '';
-      document.getElementById('priority-select').value = issue.priority || 'medium';
+      prSel.value = issue.priority || 'medium';
+      const locked = issue.status === 'resolved';
+      stSel.disabled = locked;
+      prSel.disabled = locked;
+    } else {
+      stSel.disabled = false;
+      prSel.disabled = false;
     }
     Modal.open('status-modal');
   }
@@ -337,7 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       attribution: '© OpenStreetMap',
     }).addTo(adminMap);
 
-    const clusterGrp = L.markerClusterGroup({ maxClusterRadius: 60 });
+    clusterGrp = L.markerClusterGroup({ maxClusterRadius: 60 });
     allIssues.forEach((issue) => {
       if (!issue.lat || !issue.lng) return;
       const color = markerColorForIssue(issue);

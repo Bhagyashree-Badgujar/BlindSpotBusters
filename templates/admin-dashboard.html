@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   {% include 'partials/civic-head.html' %}
   <title>Admin — CivicLens</title>
@@ -70,14 +70,13 @@
       </div>
     </div>
 
-    <div class="grid-2col-admin mt-6">
-      <div class="card tilt-hover" style="padding:20px 24px;">
-        <div class="section-title">Status mix</div>
-        <div class="chart-wrap"><canvas id="admin-chart-status" aria-label="Status chart"></canvas></div>
-      </div>
-      <div class="card tilt-hover" style="padding:20px 24px;">
-        <div class="section-title">Verification mix</div>
-        <div class="chart-wrap"><canvas id="admin-chart-verification" aria-label="Verification chart"></canvas></div>
+    <div class="card tilt-hover mt-6" style="padding:20px 24px;">
+      <div class="section-title">Issue pipeline &amp; verification (donut)</div>
+      <p class="text-muted" style="font-size:.85rem;margin:0 0 12px;">
+        Segments are mutually exclusive: resolved (unverified) excludes crowd-verified and disputed buckets.
+      </p>
+      <div class="chart-wrap" style="max-width:520px;margin:0 auto;">
+        <canvas id="admin-chart-donut-main" aria-label="Issue pipeline donut chart"></canvas>
       </div>
     </div>
 
@@ -120,11 +119,12 @@
                   <th>User</th>
                   <th>Votes</th>
                   <th>Status</th>
+                  <th>Photo EXIF</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="admin-issues-tbody">
-                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+                <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
               </tbody>
             </table>
           </div>

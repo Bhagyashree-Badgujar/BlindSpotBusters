@@ -34,9 +34,12 @@ urlpatterns = [
     path('api/login/', user_views.login_user),
     path('api/logout/', user_views.logout_user),
     path('api/register/', user_views.register_user),
+    path('api/user/notifications/', user_views.user_notifications_api),
+    path('api/user/notifications/read/', user_views.user_notifications_read_api),
 
     path('api/user/stats/', issue_views.user_stats),
     path('api/public/stats/', issue_views.public_stats),
+    path('api/public/news/', issue_views.public_news),
     path('api/issues/meta/', issue_views.issues_meta),
     path('api/issues/nearby/', issue_views.issues_nearby),
     path('api/issues/suggest-category/', issue_views.suggest_category),

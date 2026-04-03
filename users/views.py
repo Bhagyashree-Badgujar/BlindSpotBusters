@@ -10,7 +10,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 
 from issues.models import Issue
-from users.models import Certificate, UserProfile
+from users.models import Certificate, UserNotification, UserProfile
 
 
 def home(request):
@@ -28,6 +28,43 @@ def about_page(request):
 
 def contact_page(request):
     return render(request, 'contact.html')
+
+
+@login_required(login_url='/login/')
+def user_notifications_api(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    qs = UserNotification.objects.filter(user=request.user).order_by('-created_at')[:50]
+    return JsonResponse(
+        [
+            {
+                'id': n.id,
+                'kind': n.kind,
+                'title': n.title,
+                'body': n.body,
+                'read': n.read,
+                'issue_id': n.issue_id,
+                'created_at': n.created_at.isoformat() if n.created_at else None,
+            }
+            for n in qs
+        ],
+        safe=False,
+    )
+
+
+@csrf_exempt
+@login_required(login_url='/login/')
+def user_notifications_read_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    ids = data.get('ids') or []
+    if ids:
+        UserNotification.objects.filter(user=request.user, id__in=ids).update(read=True)
+    return JsonResponse({'ok': True})
 
 
 def track_issue_page(request):

@@ -46,6 +46,11 @@ class Issue(models.Model):
     lat = models.FloatField(blank=True, null=True)
     lng = models.FloatField(blank=True, null=True)
 
+    # Evidence authenticity (EXIF from before photo)
+    before_img_captured_at = models.DateTimeField(blank=True, null=True)
+    image_exif_suspicious = models.BooleanField(default=False)
+    image_exif_note = models.CharField(max_length=200, blank=True, default='')
+
     # Crowd verification (for resolved status)
     verified_confirm_count = models.PositiveIntegerField(default=0)
     verified_dispute_count = models.PositiveIntegerField(default=0)

@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   {% include 'partials/civic-head.html' %}
   <title>Contact — CivicLens</title>
@@ -10,17 +10,23 @@
     <nav class="navbar navbar-landing">
       <div class="navbar-inner">
         <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
-          <span class="brand-icon brand-icon-glow">◈</span>
+          <img src="{% static 'img/civiclens-logo.svg' %}" alt="CivicLens logo" style="width:36px;height:36px;" />
           <span class="brand-text-gradient">CivicLens</span>
         </a>
         <div class="navbar-nav nav-landing-links">
           <a class="nav-link" href="{% url 'home' %}">Home</a>
+          <a class="nav-link" href="{% url 'submit_issue' %}">Report</a>
+          <a class="nav-link" href="{% url 'track_issue' %}">Track</a>
+          <a class="nav-link" href="{% url 'map_view' %}">Map</a>
+          <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
           <a class="nav-link" href="{% url 'about' %}">About</a>
           <a class="nav-link active" href="{% url 'contact' %}">Contact</a>
         </div>
         <div class="navbar-right landing-actions">
           <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
           <a class="btn btn-outline btn-sm" href="{% url 'login_page' %}">Login</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'register_page' %}">Register</a>
+          <button type="button" class="hamburger hamburger-landing" id="hamburger-landing" aria-label="Menu">☰</button>
         </div>
       </div>
     </nav>
@@ -29,11 +35,34 @@
     <div class="glass-card tilt-hover page-static-card">
       <h1 class="section-heading">Contact the CivicLens desk</h1>
       <p class="text-muted-block">
-        For partnerships, pilot programs, or enterprise rollout, reach your municipal IT lead or email
-        <a href="mailto:support@civiclens.local">support@civiclens.local</a>.
+        For partnerships, pilots, or enterprise rollout, email the CivicLens desk at
+        <a href="mailto:mangatevinod62@gmail.com?subject=CivicLens%20inquiry">mangatevinod62@gmail.com</a>.
       </p>
-      <p class="text-muted-block">Response targets: two business days for civic partners, same day for verified admins.</p>
-      <a class="btn btn-primary metallic-shine" href="{% url 'home' %}">Back to Home</a>
+      <div class="contact-form" style="margin-top:18px;display:grid;gap:12px;max-width:480px;">
+        <label class="form-label" for="contact-name">Your name</label>
+        <input class="form-input" id="contact-name" type="text" placeholder="Krish Singh" autocomplete="name" />
+        <label class="form-label" for="contact-email">Your email</label>
+        <input class="form-input" id="contact-email" type="email" placeholder="krish.singh@example.com" autocomplete="email" required />
+        <label class="form-label" for="contact-msg">Message</label>
+        <textarea class="form-textarea" id="contact-msg" rows="4" placeholder="How can we help?" required></textarea>
+        <button class="btn btn-primary metallic-shine" type="button" id="contact-send-btn">Send via email</button>
+      </div>
+      <p class="text-muted-block" style="margin-top:12px;">Opens your mail client with your message — ensure an email app is configured on this device.</p>
+      <script>
+        document.getElementById('contact-send-btn')?.addEventListener('click', function () {
+          var name = document.getElementById('contact-name').value.trim();
+          var email = document.getElementById('contact-email').value.trim();
+          var msg = document.getElementById('contact-msg').value.trim();
+          if (!email || !msg) return;
+          var body = msg + '\n\n— ' + (name || 'Citizen') + ' <' + email + '>';
+          window.location.href =
+            'mailto:mangatevinod62@gmail.com?subject=' +
+            encodeURIComponent('CivicLens inquiry') +
+            '&body=' +
+            encodeURIComponent(body);
+        });
+      </script>
+      <a class="btn btn-outline" href="{% url 'home' %}">Back to Home</a>
     </div>
   </main>
   <footer class="landing-footer">
@@ -41,6 +70,12 @@
       <strong class="brand-text-gradient">CivicLens</strong>
     </div>
   </footer>
+  <script src="{% static 'js/utils.js' %}"></script>
   <script src="{% static 'js/theme.js' %}"></script>
+  <script>
+    document.getElementById('hamburger-landing')?.addEventListener('click', function () {
+      document.querySelector('.nav-landing-links')?.classList.toggle('open');
+    });
+  </script>
 </body>
 </html>
