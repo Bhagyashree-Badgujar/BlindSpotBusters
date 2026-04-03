@@ -1,112 +1,126 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard | CivicLens</title>
-  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
-
-  <!-- ✅ FIXED CSS -->
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
-
-  <!-- Leaflet -->
+  {% include 'partials/civic-head.html' %}
+  <title>Dashboard — CivicLens</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
-<!-- ===== Navbar ===== -->
 <nav class="navbar">
   <div class="navbar-inner">
-    <a href="/dashboard/" class="navbar-brand">
-      <div class="brand-icon">🏛️</div>
-      CivicLens
+    <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
+      <div class="brand-icon brand-icon-glow">◈</div>
+      <span class="brand-text-gradient">CivicLens</span>
     </a>
 
     <div class="navbar-nav" id="main-nav">
-      <a href="/" class="nav-link">Home</a>
-      <a href="/submit-issue/" class="nav-link">Report</a>
-      <a href="/my-reports/" class="nav-link">Track</a>
-      <a href="/map-view/" class="nav-link">Map</a>
-      <a href="/dashboard/" class="nav-link active">Dashboard</a>
+      <a href="{% url 'home' %}" class="nav-link">Home</a>
+      <a href="{% url 'submit_issue' %}" class="nav-link">Report</a>
+      <a href="{% url 'track_issue' %}" class="nav-link">Track</a>
+      <a href="{% url 'map_view' %}" class="nav-link">Map</a>
+      <a href="{% url 'dashboard' %}" class="nav-link active">Dashboard</a>
+      <a href="{% url 'about' %}" class="nav-link">About</a>
+      <a href="{% url 'contact' %}" class="nav-link">Contact</a>
     </div>
 
     <div class="navbar-right">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
       <span id="user-greeting" style="font-size:.88rem;color:var(--text-muted);"></span>
       <button class="btn btn-outline btn-sm" id="logout-btn">Logout</button>
-      <button class="hamburger" id="hamburger">☰</button>
+      <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
     </div>
   </div>
 </nav>
 
-<!-- ===== Layout ===== -->
 <div class="layout">
 
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
-    <a href="/dashboard/" class="nav-link active"><span class="icon">🏠</span> Home</a>
-    <a href="/submit-issue/" class="nav-link"><span class="icon">➕</span> Submit Issue</a>
-    <a href="/my-reports/" class="nav-link"><span class="icon">📂</span> My Reports</a>
-    <a href="/map-view/" class="nav-link"><span class="icon">🗺️</span> Map View</a>
+    <a href="{% url 'dashboard' %}" class="nav-link active"><span class="icon">🏠</span> Dashboard</a>
+    <a href="{% url 'submit_issue' %}" class="nav-link"><span class="icon">➕</span> Report Issue</a>
+    <a href="{% url 'my_reports' %}" class="nav-link"><span class="icon">📂</span> My Reports</a>
+    <a href="{% url 'map_view' %}" class="nav-link"><span class="icon">🗺️</span> Map View</a>
   </aside>
 
-  <!-- Main -->
   <main class="main-content">
 
     <div class="page-header">
-      <h1>Dashboard 📊</h1>
-      <p>Welcome back! Here's a summary of your civic reports.</p>
+      <h1>Dashboard</h1>
+      <p>Welcome back — your civic impact at a glance.</p>
     </div>
 
-    <!-- Stats -->
     <div class="stat-grid" id="stat-grid">
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon blue">📋</div>
         <div class="stat-info">
           <div class="stat-value" id="stat-total">—</div>
           <div class="stat-label">Total Submitted</div>
         </div>
       </div>
-
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon green">✅</div>
         <div class="stat-info">
           <div class="stat-value" id="stat-resolved">—</div>
           <div class="stat-label">Resolved</div>
         </div>
       </div>
-
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon yellow">⏳</div>
         <div class="stat-info">
           <div class="stat-value" id="stat-pending">—</div>
           <div class="stat-label">Pending</div>
         </div>
       </div>
-
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon red">👍</div>
         <div class="stat-info">
           <div class="stat-value" id="stat-upvotes">—</div>
           <div class="stat-label">Upvotes Received</div>
         </div>
       </div>
-    </div>
-
-    <!-- Chart -->
-    <div class="card mt-6" style="padding:20px 24px;">
-      <div class="section-title">📈 Issues by Status</div>
-      <div class="mini-bar-chart" id="mini-chart">
-        <div class="bar-col"><div class="bar red" id="bar-pending"></div><div class="bar-label">Pending</div></div>
-        <div class="bar-col"><div class="bar yellow" id="bar-progress"></div><div class="bar-label">In Progress</div></div>
-        <div class="bar-col"><div class="bar green" id="bar-resolved"></div><div class="bar-label">Resolved</div></div>
+      <div class="stat-card tilt-hover">
+        <div class="stat-icon blue">🏅</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-points">—</div>
+          <div class="stat-label">Civic Points</div>
+        </div>
       </div>
     </div>
 
-    <!-- Reports -->
-    <div class="card mt-6">
-      <div class="section-title">📂 Recent Reports</div>
+    <div class="card mt-6 tilt-hover" style="padding:20px 24px;">
+      <div class="section-title">Badges &amp; recognition</div>
+      <div id="badge-row" class="text-muted" style="display:flex;flex-wrap:wrap;gap:8px;">—</div>
+    </div>
 
+    <div class="grid-2col mt-6">
+      <div class="card tilt-hover" style="padding:20px 24px;">
+        <div class="section-title">Issues by status</div>
+        <div class="mini-bar-chart" id="mini-chart">
+          <div class="bar-col"><div class="bar red" id="bar-pending"></div><div class="bar-label">Pending</div></div>
+          <div class="bar-col"><div class="bar yellow" id="bar-progress"></div><div class="bar-label">In Progress</div></div>
+          <div class="bar-col"><div class="bar green" id="bar-resolved"></div><div class="bar-label">Resolved</div></div>
+        </div>
+      </div>
+      <div class="card tilt-hover" style="padding:20px 24px;">
+        <div class="section-title">Category distribution</div>
+        <div class="chart-wrap">
+          <canvas id="chart-category" aria-label="Category chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-6 tilt-hover" style="padding:20px 24px;">
+      <div class="section-title" style="justify-content:space-between;">
+        <span>🏆 Public leaderboard</span>
+      </div>
+      <ul class="leaderboard-list" id="leaderboard-list">
+        <li class="text-muted">Loading…</li>
+      </ul>
+    </div>
+
+    <div class="card mt-6 tilt-hover">
+      <div class="section-title">Recent reports</div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -114,41 +128,41 @@
               <th>#</th>
               <th>Title</th>
               <th>Status</th>
-              <th>👍 Upvotes</th>
-              <th>Last Updated</th>
+              <th>👍</th>
+              <th>Updated</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody id="reports-tbody">
             <tr>
               <td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">
-                Loading…
+                <div class="skeleton" style="height:14px;width:60%;margin:0 auto;"></div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-
       <div class="pagination" id="reports-pagination"></div>
     </div>
 
-    <!-- Map -->
-    <div class="card mt-6">
+    <div class="card mt-6 tilt-hover">
       <div class="section-title" style="justify-content:space-between;">
-        <span>🗺️ Map Preview</span>
-        <a href="/map-view/" class="btn btn-outline btn-sm">Full Map</a>
+        <span>Map preview</span>
+        <a href="{% url 'map_view' %}" class="btn btn-outline btn-sm">Full map</a>
       </div>
-      <div id="map" style="height:320px;"></div>
+      <div id="map" class="map-chrome" style="height:320px;"></div>
     </div>
 
   </main>
 </div>
 
-<!-- Issue detail modal -->
 <div class="modal-overlay" id="issue-modal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">Issue Details</div>
+      <div>
+        <span id="modal-trending" class="badge badge-trending hidden" style="margin-bottom:6px;">⚡ Trending</span>
+        <div class="modal-title" id="modal-title">Issue Details</div>
+      </div>
       <button type="button" class="modal-close" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
@@ -164,7 +178,7 @@
         </div>
       </div>
       <div class="img-slider-wrap" id="modal-slider" style="margin:16px 0;">
-        <span class="img-slide-label">📸 Before / After</span>
+        <span class="img-slide-label">Before / After</span>
         <div class="img-slider-track">
           <div class="img-slide">
             <img src="https://placehold.co/640x220?text=Before" id="modal-before-img" alt="Before" />
@@ -178,18 +192,19 @@
           <div class="img-dot"></div>
         </div>
       </div>
+      <div id="modal-media" class="form-hint" style="margin-bottom:12px;"></div>
       <p id="modal-desc" style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;"></p>
       <div class="impact-score" id="modal-impact">
         <div>
-          <div class="impact-label">⭐ Impact Score</div>
+          <div class="impact-label">Impact Score</div>
           <div class="impact-number" id="modal-score">0</div>
         </div>
-        <div style="flex:1;font-size:.8rem;color:var(--text-muted);">Votes × 2 + recent activity</div>
+        <div style="flex:1;font-size:.8rem;color:var(--text-muted);">Votes × 2 + nearby activity × 3</div>
       </div>
-      <div class="alert alert-warn mt-4" id="modal-duplicate" style="display:none;">⚠️ Possible duplicate report.</div>
+      <div class="alert alert-warn mt-4" id="modal-duplicate" style="display:none;">Possible duplicate in this area.</div>
       <div style="margin-top:16px;display:flex;align-items:center;gap:12px;">
         <button type="button" class="upvote-btn" id="modal-upvote-btn">
-          ⭐ Upvote <span class="count" id="modal-vote-count">0</span>
+          Upvote <span class="count" id="modal-vote-count">0</span>
         </button>
       </div>
     </div>
@@ -199,12 +214,17 @@
   </div>
 </div>
 
-<!-- ===== JS ===== -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- ✅ FIXED STATIC JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/realtime.js' %}"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
-
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.CivicRealtime) CivicRealtime.start();
+  });
+</script>
+<style>.grid-2col{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;} @media(max-width:700px){.grid-2col{grid-template-columns:1fr;}}</style>
 </body>
 </html>

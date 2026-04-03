@@ -1,22 +1,23 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Login | CivicLens</title>
-  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  {% include 'partials/civic-head.html' %}
+  <title>Admin Login — CivicLens</title>
 </head>
 <body class="auth-page">
 
-  <div class="auth-card">
+  <div class="auth-card tilt-hover">
     <div class="auth-logo">
-      <div class="icon">🔐</div>
+      <div class="icon" aria-hidden="true">⬡</div>
       <div>
-        <h2>Admin Access</h2>
-        <p>CivicLens Administration</p>
+        <h2 class="brand-text-gradient" style="font-size:1.25rem;">CivicLens</h2>
+        <p>Staff console access</p>
       </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
     </div>
 
     <div id="alert-box" class="alert alert-error">
@@ -33,19 +34,25 @@
           <span class="form-error" id="err-pass"></span>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg w-full" id="submit-btn">
-          🔐 Access Admin Panel
+        <button type="submit" class="btn btn-primary btn-lg w-full metallic-shine" id="submit-btn">
+          Access CivicLens Admin
         </button>
 
       </div>
     </form>
 
-    <p style="text-align:center;font-size:.85rem;margin-top:16px;">
-      <a href="/login/" style="color:var(--text-muted);">← Back to user login</a>
+    <p style="text-align:center;font-size:.85rem;margin-top:16px;color:var(--text-muted);">
+      Django admin: <a href="/admin/">/admin/</a> (staff credentials)
+    </p>
+    <p style="text-align:center;font-size:.85rem;margin-top:8px;">
+      <a href="{% url 'login_page' %}" style="color:var(--text-muted);">← User login</a>
+      ·
+      <a href="{% url 'home' %}" style="color:var(--text-muted);">Home</a>
     </p>
   </div>
 
 <script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/theme.js' %}"></script>
 <script src="{% static 'js/admin-login.js' %}"></script>
 </body>
 </html>

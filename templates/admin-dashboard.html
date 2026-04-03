@@ -1,71 +1,67 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard | CivicLens</title>
-  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  {% include 'partials/civic-head.html' %}
+  <title>Admin — CivicLens</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 </head>
 <body>
 
-<!-- Admin Navbar -->
-<nav class="navbar" style="background:linear-gradient(90deg,#1e3a8a,#1d4ed8);">
+<nav class="navbar admin-nav-metallic">
   <div class="navbar-inner">
-    <a href="{% url 'admin_dashboard' %}" class="navbar-brand" style="color:#fff;">
-      <div class="brand-icon" style="background:rgba(255,255,255,.2);">🏛️</div>
-      CivicLens <span style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;margin-left:6px;font-weight:600;">ADMIN</span>
+    <a href="{% url 'admin_dashboard' %}" class="navbar-brand brand-metallic">
+      <div class="brand-icon brand-icon-glow">⬡</div>
+      <span class="brand-text-gradient">CivicLens</span>
+      <span class="admin-badge-pill">ADMIN</span>
     </a>
-    <div class="navbar-right">
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);" id="admin-logout-btn">Logout</button>
+    <div class="navbar-right" style="gap:10px;">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+      <a class="btn btn-outline btn-sm" href="/admin/" style="border-color:rgba(255,255,255,.35);color:#e2e8f0;">Django Admin</a>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);" id="admin-logout-btn" type="button">Logout</button>
     </div>
   </div>
 </nav>
 
 <div class="layout">
-  <!-- Admin Sidebar -->
   <aside class="sidebar">
     <a href="{% url 'admin_dashboard' %}" class="nav-link active"><span class="icon">📊</span> Dashboard</a>
     <a href="#tab-issues" class="nav-link sidebar-tab" data-target="issues"><span class="icon">📋</span> Issues</a>
-    <a href="#tab-users"  class="nav-link sidebar-tab" data-target="users"><span class="icon">👤</span> Users</a>
-    <a href="#tab-map"    class="nav-link sidebar-tab" data-target="map"><span class="icon">🗺️</span> Map</a>
+    <a href="#tab-users" class="nav-link sidebar-tab" data-target="users"><span class="icon">👤</span> Users</a>
+    <a href="#tab-map" class="nav-link sidebar-tab" data-target="map"><span class="icon">🗺️</span> Map</a>
   </aside>
 
   <main class="main-content">
-
-    <!-- Stats -->
     <div class="page-header">
-      <h1>Admin Dashboard 🏛️</h1>
-      <p>Platform-wide overview and management.</p>
+      <h1>CivicLens command center</h1>
+      <p>Real-time oversight across citizens, routing, and resolution velocity.</p>
     </div>
 
     <div class="stat-grid">
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon blue">👤</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-users">—</div>
-          <div class="stat-label">Total Users</div>
+          <div class="stat-label">Citizens</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon blue">📋</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-issues">—</div>
           <div class="stat-label">Total Issues</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon red">🔴</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-pending">—</div>
           <div class="stat-label">Pending</div>
         </div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card tilt-hover">
         <div class="stat-icon green">✅</div>
         <div class="stat-info">
           <div class="stat-value" id="admin-stat-resolved">—</div>
@@ -74,40 +70,52 @@
       </div>
     </div>
 
-    <!-- Tabs -->
+    <div class="grid-2col-admin mt-6">
+      <div class="card tilt-hover" style="padding:20px 24px;">
+        <div class="section-title">Status mix</div>
+        <div class="chart-wrap"><canvas id="admin-chart-status" aria-label="Status chart"></canvas></div>
+      </div>
+      <div class="card tilt-hover" style="padding:20px 24px;">
+        <div class="section-title">Category load</div>
+        <div class="chart-wrap"><canvas id="admin-chart-category" aria-label="Category chart"></canvas></div>
+      </div>
+    </div>
+
     <div style="margin-top:28px;">
       <div class="tabs">
-        <button class="tab-btn active" data-tab="issues">📋 Issues</button>
-        <button class="tab-btn" data-tab="users">👤 Users</button>
-        <button class="tab-btn" data-tab="map">🗺️ Hotspot Map</button>
+        <button type="button" class="tab-btn active" data-tab="issues">Issues</button>
+        <button type="button" class="tab-btn" data-tab="users">Users</button>
+        <button type="button" class="tab-btn" data-tab="map">Hotspot map</button>
       </div>
 
-      <!-- Issues Tab -->
       <div class="tab-content active" id="tab-issues" data-tabs-parent>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-          <input class="form-input" type="search" id="admin-issue-search" placeholder="🔍 Search issues…" style="max-width:240px;" />
-          <select class="form-select" id="admin-issue-status" style="max-width:180px;">
-            <option value="">All Statuses</option>
-            <option value="pending">🔴 Pending</option>
-            <option value="in_progress">🟡 In Progress</option>
-            <option value="resolved">🟢 Resolved</option>
+          <input class="form-input" type="search" id="admin-issue-search" placeholder="Search issues…" style="max-width:260px;" />
+          <select class="form-select" id="admin-issue-status" style="max-width:200px;">
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In progress</option>
+            <option value="resolved">Resolved</option>
           </select>
         </div>
-        <div class="card" style="padding:0;">
+        <div class="card tilt-hover" style="padding:0;">
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Title</th>
+                  <th>Cat</th>
+                  <th>Pri</th>
+                  <th>Impact</th>
                   <th>User</th>
-                  <th>👍 Votes</th>
+                  <th>Votes</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="admin-issues-tbody">
-                <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
+                <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">Loading…</td></tr>
               </tbody>
             </table>
           </div>
@@ -115,9 +123,8 @@
         </div>
       </div>
 
-      <!-- Users Tab -->
       <div class="tab-content" id="tab-users" data-tabs-parent>
-        <div class="card" style="padding:0;">
+        <div class="card tilt-hover" style="padding:0;">
           <div class="table-wrap">
             <table>
               <thead>
@@ -139,71 +146,89 @@
         </div>
       </div>
 
-      <!-- Map Tab -->
       <div class="tab-content" id="tab-map" data-tabs-parent>
         <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
-          <div class="badge badge-blue">🔴 = High density</div>
-          <div class="badge badge-blue">Clustered markers show hotspots</div>
+          <span class="badge badge-blue">Clusters = density</span>
+          <span class="badge badge-blue">Chromatic priority encoding</span>
         </div>
-        <div id="admin-map" style="height:500px;border-radius:var(--radius);border:1px solid var(--border);"></div>
+        <div id="admin-map" class="map-chrome" style="height:520px;"></div>
       </div>
-
-    </div><!-- end tabs -->
-
+    </div>
   </main>
 </div>
 
-<!-- Status Update Modal -->
 <div class="modal-overlay" id="status-modal">
-  <div class="modal" style="max-width:420px;">
+  <div class="modal" style="max-width:460px;">
     <div class="modal-header">
-      <div class="modal-title">Change Issue Status</div>
-      <button class="modal-close">✕</button>
+      <div class="modal-title">Route &amp; status</div>
+      <button type="button" class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:16px;" id="status-modal-issue-title"></p>
+      <p class="text-muted" style="font-size:.9rem;margin-bottom:16px;" id="status-modal-issue-title"></p>
       <div class="form-group">
-        <label class="form-label">New Status</label>
+        <label class="form-label">Status</label>
         <select class="form-select" id="new-status-select">
-          <option value="pending">🔴 Pending</option>
-          <option value="in_progress">🟡 In Progress</option>
-          <option value="resolved">🟢 Resolved</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In progress</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department</label>
+        <input class="form-input" type="text" id="department-input" placeholder="e.g. Public Works" maxlength="120" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select class="form-select" id="priority-select">
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
         </select>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline modal-close">Cancel</button>
-      <button class="btn btn-primary" id="confirm-status-btn">Update Status</button>
+      <button type="button" class="btn btn-outline modal-close">Cancel</button>
+      <button type="button" class="btn btn-primary metallic-shine" id="confirm-status-btn">Save changes</button>
     </div>
   </div>
 </div>
 
-<!-- After Image Upload Modal -->
 <div class="modal-overlay" id="after-img-modal">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
-      <div class="modal-title">📸 Upload After Image</div>
-      <button class="modal-close">✕</button>
+      <div class="modal-title">Upload after photo</div>
+      <button type="button" class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px;" id="after-img-issue-title"></p>
+      <p class="text-muted" style="font-size:.88rem;margin-bottom:16px;" id="after-img-issue-title"></p>
       <div class="file-upload-area" id="after-upload-area">
         <input type="file" id="after-img-file" accept="image/*" />
         <div class="file-upload-icon">📸</div>
-        <div style="font-weight:600;margin-bottom:4px;">Click or drag to upload</div>
-        <div class="form-hint">After image showing resolution</div>
+        <div style="font-weight:600;margin-bottom:4px;">Resolution evidence</div>
+        <div class="form-hint">Shows citizens the fix</div>
         <div class="file-preview"><img src="" alt="After preview" /></div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline modal-close">Cancel</button>
-      <button class="btn btn-accent" id="confirm-after-img-btn">Upload Image</button>
+      <button type="button" class="btn btn-outline modal-close">Cancel</button>
+      <button type="button" class="btn btn-accent" id="confirm-after-img-btn">Upload</button>
     </div>
   </div>
 </div>
+
+<style>.grid-2col-admin{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}</style>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/theme.js' %}"></script>
+<script src="{% static 'js/realtime.js' %}"></script>
 <script src="{% static 'js/admin-dashboard.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.CivicRealtime) CivicRealtime.start();
+  });
+</script>
 </body>
 </html>

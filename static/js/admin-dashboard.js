@@ -1,53 +1,119 @@
-/* admin-dashboard.js */
+/* admin-dashboard.js — CivicLens */
 
 document.addEventListener('DOMContentLoaded', async () => {
-
-  /* ---------- Logout ---------- */
   document.getElementById('admin-logout-btn')?.addEventListener('click', async () => {
-    try { await API.post('/api/logout/'); } catch {}
+    try {
+      await API.post('/api/logout/');
+    } catch {}
     window.location.href = '/admin-login/';
   });
 
-  /* ---------- Tab panels ---------- */
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(p => {
+      document.querySelectorAll('.tab-content').forEach((p) => {
         p.classList.toggle('active', p.id === 'tab-' + tab);
       });
       if (tab === 'users' && !allUsers.length) loadUsers();
-      if (tab === 'map') initAdminMap();
+      if (tab === 'map') initAdminMap(true);
     });
   });
 
-  /* ---------- Sidebar tab nav ---------- */
-  document.querySelectorAll('.sidebar-tab').forEach(link => {
-    link.addEventListener('click', e => {
+  document.querySelectorAll('.sidebar-tab').forEach((link) => {
+    link.addEventListener('click', (e) => {
       e.preventDefault();
       const target = link.dataset.target;
-      document.querySelectorAll('.tab-btn').forEach(btn => {
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
         if (btn.dataset.tab === target) btn.click();
       });
     });
   });
 
-  /* ---------- Stats ---------- */
+  let chartStatus = null;
+  let chartCategory = null;
+
   async function loadStats() {
     try {
       const data = await API.get('/api/admin/stats/');
-      document.getElementById('admin-stat-users').textContent   = data.users    ?? 0;
-      document.getElementById('admin-stat-issues').textContent  = data.issues   ?? 0;
-      document.getElementById('admin-stat-pending').textContent = data.pending  ?? 0;
-      document.getElementById('admin-stat-resolved').textContent= data.resolved ?? 0;
+      document.getElementById('admin-stat-users').textContent = data.users ?? 0;
+      document.getElementById('admin-stat-issues').textContent = data.issues ?? 0;
+      document.getElementById('admin-stat-pending').textContent = data.pending ?? 0;
+      document.getElementById('admin-stat-resolved').textContent = data.resolved ?? 0;
+
+      const ctxS = document.getElementById('admin-chart-status');
+      if (ctxS && window.Chart) {
+        const rows = data.by_status || [];
+        const map = {};
+        rows.forEach((r) => {
+          map[r.status] = r.count || 0;
+        });
+        const labels = ['Pending', 'In progress', 'Resolved'];
+        const values = [map.pending || 0, map.in_progress || 0, map.resolved || 0];
+        if (chartStatus) chartStatus.destroy();
+        chartStatus = new Chart(ctxS, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Issues',
+                data: values,
+                backgroundColor: ['#f87171', '#fbbf24', '#34d399'],
+                borderRadius: 8,
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: getComputedStyle(document.body).color } },
+              y: { ticks: { color: getComputedStyle(document.body).color } },
+            },
+            animation: { duration: 900 },
+          },
+        });
+      }
+
+      const ctxC = document.getElementById('admin-chart-category');
+      if (ctxC && window.Chart) {
+        const rows = data.by_category || [];
+        const labels = rows.map((r) => String(r.category || '').replace(/_/g, ' '));
+        const values = rows.map((r) => r.count || 0);
+        if (chartCategory) chartCategory.destroy();
+        chartCategory = new Chart(ctxC, {
+          type: 'line',
+          data: {
+            labels: labels.length ? labels : ['—'],
+            datasets: [
+              {
+                label: 'Reports',
+                data: values.length ? values : [0],
+                borderColor: '#38bdf8',
+                tension: 0.35,
+                fill: true,
+                backgroundColor: 'rgba(56,189,248,.12)',
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { labels: { color: getComputedStyle(document.body).color } } },
+            scales: {
+              x: { ticks: { color: getComputedStyle(document.body).color } },
+              y: { ticks: { color: getComputedStyle(document.body).color } },
+            },
+            animation: { duration: 900 },
+          },
+        });
+      }
     } catch {}
   }
-  loadStats();
 
-  /* ---------- Issues Table ---------- */
-  let allIssues   = [];
-  let issuesPage  = 1;
+  await loadStats();
+
+  let allIssues = [];
+  let issuesPage = 1;
   const I_PER_PAGE = 10;
   let pendingStatusId = null;
   let pendingAfterImgId = null;
@@ -55,22 +121,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadIssues() {
     try {
       allIssues = await API.get('/api/admin/issues/');
-    } catch { allIssues = []; }
+    } catch {
+      allIssues = [];
+    }
     filterIssues();
   }
 
   function filterIssues() {
     const q = (document.getElementById('admin-issue-search')?.value || '').toLowerCase();
     const s = document.getElementById('admin-issue-status')?.value || '';
-    const filtered = allIssues.filter(i =>
-      (!q || i.title.toLowerCase().includes(q) || String(i.id).includes(q)) &&
-      (!s || i.status === s)
+    const filtered = allIssues.filter(
+      (i) =>
+        (!q || i.title.toLowerCase().includes(q) || String(i.id).includes(q)) && (!s || i.status === s)
     );
     renderIssuesTable(filtered, 1);
   }
 
   document.getElementById('admin-issue-search')?.addEventListener('input', filterIssues);
   document.getElementById('admin-issue-status')?.addEventListener('change', filterIssues);
+
+  function priBadge(p) {
+    if (p === 'high') return '<span class="badge badge-priority-high">HIGH</span>';
+    if (p === 'low') return '<span class="badge badge-priority-low">LOW</span>';
+    return '<span class="badge badge-priority-med">MED</span>';
+  }
 
   function renderIssuesTable(issues, page) {
     issuesPage = page;
@@ -79,78 +153,92 @@ document.addEventListener('DOMContentLoaded', async () => {
     const slice = issues.slice(start, start + I_PER_PAGE);
 
     if (!slice.length) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">No issues found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">No issues found.</td></tr>`;
       document.getElementById('admin-issues-pagination').innerHTML = '';
       return;
     }
 
-    tbody.innerHTML = slice.map(issue => `
+    tbody.innerHTML = slice
+      .map(
+        (issue) => `
       <tr>
         <td style="font-size:.8rem;color:var(--text-muted);">#${issue.id}</td>
         <td>
           <strong>${esc(issue.title)}</strong>
-          ${issue.is_duplicate ? '<br><span class="badge badge-pending" style="font-size:.65rem;">⚠️ Duplicate</span>' : ''}
+          ${issue.trending ? '<br><span class="badge badge-trending" style="font-size:.62rem;">TRENDING</span>' : ''}
+          ${issue.is_duplicate ? '<br><span class="badge badge-pending" style="font-size:.62rem;">DUP?</span>' : ''}
         </td>
+        <td style="font-size:.78rem;">${esc(issue.category || '')}</td>
+        <td>${priBadge(issue.priority)}</td>
+        <td><span class="badge badge-blue">${issue.impact_score ?? 0}</span></td>
         <td style="font-size:.85rem;">${esc(issue.user || '—')}</td>
-        <td>👍 ${issue.votes ?? 0}</td>
+        <td>${issue.votes ?? 0}</td>
         <td>${statusBadge(issue.status)}</td>
         <td>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-outline btn-sm change-status-btn"
-                    data-id="${issue.id}" data-title="${esc(issue.title)}" data-status="${issue.status}">
-              ✏️ Status
-            </button>
-            <button class="btn btn-outline btn-sm upload-after-btn"
-                    data-id="${issue.id}" data-title="${esc(issue.title)}">
-              📸 After
-            </button>
+            <button type="button" class="btn btn-outline btn-sm change-status-btn" data-id="${issue.id}">Route</button>
+            <button type="button" class="btn btn-outline btn-sm upload-after-btn" data-id="${issue.id}">After</button>
           </div>
         </td>
-      </tr>
-    `).join('');
+      </tr>`
+      )
+      .join('');
 
-    tbody.querySelectorAll('.change-status-btn').forEach(btn => {
-      btn.addEventListener('click', () => openStatusModal(btn.dataset.id, btn.dataset.title, btn.dataset.status));
+    tbody.querySelectorAll('.change-status-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openStatusModal(btn.dataset.id));
     });
-    tbody.querySelectorAll('.upload-after-btn').forEach(btn => {
-      btn.addEventListener('click', () => openAfterImgModal(btn.dataset.id, btn.dataset.title));
+    tbody.querySelectorAll('.upload-after-btn').forEach((btn) => {
+      btn.addEventListener('click', () => openAfterImgModal(btn.dataset.id));
     });
 
     renderPagination(
       document.getElementById('admin-issues-pagination'),
-      issues.length, I_PER_PAGE, page,
-      p => renderIssuesTable(issues, p)
+      issues.length,
+      I_PER_PAGE,
+      page,
+      (p) => renderIssuesTable(issues, p)
     );
   }
 
-  loadIssues();
+  await loadIssues();
 
-  /* ---------- Status Modal ---------- */
-  function openStatusModal(id, title, currentStatus) {
+  function openStatusModal(id) {
     pendingStatusId = id;
-    document.getElementById('status-modal-issue-title').textContent = title;
-    document.getElementById('new-status-select').value = currentStatus;
+    const issue = allIssues.find((i) => String(i.id) === String(id));
+    document.getElementById('status-modal-issue-title').textContent = issue ? issue.title : '';
+    if (issue) {
+      document.getElementById('new-status-select').value = issue.status;
+      document.getElementById('department-input').value = issue.department || '';
+      document.getElementById('priority-select').value = issue.priority || 'medium';
+    }
     Modal.open('status-modal');
   }
 
   document.getElementById('confirm-status-btn')?.addEventListener('click', async () => {
     if (!pendingStatusId) return;
     const newStatus = document.getElementById('new-status-select').value;
+    const dept = document.getElementById('department-input').value || '';
+    const pri = document.getElementById('priority-select').value;
     try {
-      await API.patch(`/api/admin/issues/${pendingStatusId}/`, { status: newStatus });
-      Toast.show('Status updated! ✅', 'success');
+      await API.patch(`/api/admin/issues/${pendingStatusId}/`, {
+        status: newStatus,
+        department: dept,
+        priority: pri,
+      });
+      Toast.show('Issue updated', 'success');
       Modal.close('status-modal');
-      loadIssues();
-      loadStats();
+      await loadIssues();
+      await loadStats();
+      mapInitialized = false;
     } catch (err) {
       Toast.show(err.message || 'Update failed.', 'error');
     }
   });
 
-  /* ---------- After Image Modal ---------- */
-  function openAfterImgModal(id, title) {
+  function openAfterImgModal(id) {
     pendingAfterImgId = id;
-    document.getElementById('after-img-issue-title').textContent = title;
+    const issue = allIssues.find((i) => String(i.id) === String(id));
+    document.getElementById('after-img-issue-title').textContent = issue ? issue.title : '';
     Modal.open('after-img-modal');
     initFileUpload(document.getElementById('after-upload-area'));
   }
@@ -158,33 +246,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('confirm-after-img-btn')?.addEventListener('click', async () => {
     if (!pendingAfterImgId) return;
     const fileInput = document.getElementById('after-img-file');
-    if (!fileInput.files[0]) { Toast.show('Please select an image.', 'warn'); return; }
+    if (!fileInput.files[0]) {
+      Toast.show('Select an image.', 'warn');
+      return;
+    }
     const fd = new FormData();
     fd.append('after_img', fileInput.files[0]);
     try {
       await API.post(`/api/admin/issues/${pendingAfterImgId}/after-image/`, fd);
-      Toast.show('After image uploaded! 📸', 'success');
+      Toast.show('After photo uploaded', 'success');
       Modal.close('after-img-modal');
-      loadIssues();
+      await loadIssues();
     } catch (err) {
       Toast.show(err.message || 'Upload failed.', 'error');
     }
   });
 
-  /* ---------- Users Table ---------- */
-  let allUsers  = [];
-  let usersPage = 1;
+  let allUsers = [];
   const U_PER_PAGE = 10;
 
   async function loadUsers() {
     try {
       allUsers = await API.get('/api/admin/users/');
-    } catch { allUsers = []; }
+    } catch {
+      allUsers = [];
+    }
     renderUsersTable(allUsers, 1);
   }
 
   function renderUsersTable(users, page) {
-    usersPage = page;
     const tbody = document.getElementById('admin-users-tbody');
     const start = (page - 1) * U_PER_PAGE;
     const slice = users.slice(start, start + U_PER_PAGE);
@@ -194,79 +284,88 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    tbody.innerHTML = slice.map(user => `
+    tbody.innerHTML = slice
+      .map(
+        (user) => `
       <tr>
         <td style="font-size:.8rem;color:var(--text-muted);">#${user.id}</td>
         <td><strong>${esc(user.username)}</strong></td>
         <td style="font-size:.85rem;">${esc(user.email)}</td>
         <td><span class="badge badge-blue">${user.issues_submitted ?? 0} issues</span></td>
         <td style="font-size:.82rem;color:var(--text-muted);">${fmtDate(user.last_login)}</td>
-        <td>${user.is_active !== false
-          ? '<span class="badge badge-resolved">Active</span>'
-          : '<span class="badge badge-pending">Inactive</span>'}</td>
-      </tr>
-    `).join('');
+        <td>${
+          user.is_active !== false
+            ? '<span class="badge badge-resolved">Active</span>'
+            : '<span class="badge badge-pending">Inactive</span>'
+        }</td>
+      </tr>`
+      )
+      .join('');
 
     renderPagination(
       document.getElementById('admin-users-pagination'),
-      users.length, U_PER_PAGE, page,
-      p => renderUsersTable(users, p)
+      users.length,
+      U_PER_PAGE,
+      page,
+      (p) => renderUsersTable(users, p)
     );
   }
 
-  /* ---------- Admin Hotspot Map ---------- */
   let adminMap = null;
   let mapInitialized = false;
   let clusterGrp = null;
 
-  function initAdminMap() {
-    if (mapInitialized) return;
+  function initAdminMap(force) {
+    if (mapInitialized && !force) return;
     mapInitialized = true;
+
+    const el = document.getElementById('admin-map');
+    if (!el || typeof L === 'undefined') return;
+    if (adminMap) {
+      adminMap.remove();
+      adminMap = null;
+    }
 
     adminMap = L.map('admin-map').setView([20.5937, 78.9629], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap',
     }).addTo(adminMap);
 
-    clusterGrp = L.markerClusterGroup({ maxClusterRadius: 60 });
-    adminMap.addLayer(clusterGrp);
-    redrawAdminMap();
-  }
-
-  function redrawAdminMap() {
-    if (!clusterGrp) return;
-    clusterGrp.clearLayers();
-    const colors = { pending: '#ef4444', in_progress: '#f59e0b', resolved: '#10b981' };
-
-    allIssues.forEach(issue => {
+    const clusterGrp = L.markerClusterGroup({ maxClusterRadius: 60 });
+    allIssues.forEach((issue) => {
       if (!issue.lat || !issue.lng) return;
-      const color = colors[issue.status] || '#6b7a99';
-      const icon  = L.divIcon({
-        html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>`,
-        className: '', iconSize: [16, 16]
+      const color = markerColorForIssue(issue);
+      const icon = L.divIcon({
+        html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 12px rgba(56,189,248,.35);"></div>`,
+        className: '',
+        iconSize: [16, 16],
       });
       L.marker([issue.lat, issue.lng], { icon })
-        .bindPopup(`<strong>#${issue.id} – ${esc(issue.title)}</strong><br>${statusBadge(issue.status)}<br>User: ${esc(issue.user || '—')}<br>👍 ${issue.votes ?? 0} votes`)
+        .bindPopup(
+          `<strong>#${issue.id} – ${esc(issue.title)}</strong><br>${statusBadge(issue.status)}<br>User: ${esc(
+            issue.user || '—'
+          )}<br>Impact ${issue.impact_score ?? 0}`
+        )
         .addTo(clusterGrp);
     });
+    adminMap.addLayer(clusterGrp);
   }
 
-  setInterval(() => {
-    loadStats();
-    loadIssues().then(() => {
-      if (mapInitialized) redrawAdminMap();
-    });
-  }, 10000);
-
+  window.addEventListener('civic-data-changed', async () => {
+    await loadStats();
+    await loadIssues();
+    mapInitialized = false;
+    if (document.getElementById('tab-map')?.classList.contains('active')) initAdminMap(true);
+  });
 });
 
-/* ---------- Helpers ---------- */
 function esc(str) {
   const d = document.createElement('div');
   d.appendChild(document.createTextNode(str || ''));
   return d.innerHTML;
 }
+
 function fmtDate(str) {
   if (!str) return '—';
-  return new Date(str).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  return new Date(str).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }

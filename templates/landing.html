@@ -1,92 +1,158 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CivicLens | Smart Civic Issue Reporting System</title>
-  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  {% include 'partials/civic-head.html' %}
+  <title>CivicLens — Smart Civic Issue Reporting</title>
+  <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
 </head>
-<body class="landing-page">
-  <nav class="navbar glass-nav">
-    <div class="navbar-inner">
-      <a href="{% url 'home' %}" class="navbar-brand">
-        <div class="brand-icon">CL</div>
-        CivicLens
-      </a>
-      <div class="navbar-nav" id="main-nav">
-        <a href="{% url 'home' %}" class="nav-link active">Home</a>
-        <a href="{% url 'submit_issue' %}" class="nav-link">Report</a>
-        <a href="{% url 'my_reports' %}" class="nav-link">Track</a>
-        <a href="{% url 'map_view' %}" class="nav-link">Map</a>
-        <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
-        <a href="#about" class="nav-link">About</a>
-        <a href="#contact" class="nav-link">Contact</a>
+<body class="landing-body">
+
+  <header class="nav-landing-wrap">
+    <nav class="navbar navbar-landing">
+      <div class="navbar-inner">
+        <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
+          <span class="brand-icon brand-icon-glow" aria-hidden="true">◈</span>
+          <span class="brand-text-gradient">CivicLens</span>
+        </a>
+        <div class="navbar-nav nav-landing-links">
+          <a class="nav-link" href="{% url 'home' %}">Home</a>
+          <a class="nav-link" href="{% url 'submit_issue' %}">Report</a>
+          <a class="nav-link" href="{% url 'track_issue' %}">Track</a>
+          <a class="nav-link" href="{% url 'map_view' %}">Map</a>
+          <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+          <a class="nav-link" href="{% url 'about' %}">About</a>
+          <a class="nav-link" href="{% url 'contact' %}">Contact</a>
+        </div>
+        <div class="navbar-right landing-actions">
+          <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle theme" aria-label="Toggle light and dark theme"></button>
+          {% if user.is_authenticated %}
+            {% if user.is_staff %}
+              <a class="btn btn-outline btn-sm" href="{% url 'admin_dashboard' %}">Admin</a>
+            {% else %}
+              <a class="btn btn-outline btn-sm" href="{% url 'dashboard' %}">My account</a>
+            {% endif %}
+            <a class="btn btn-primary btn-sm" href="#" id="landing-logout">Logout</a>
+          {% else %}
+            <a class="btn btn-outline btn-sm" href="{% url 'login_page' %}">Login</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'register_page' %}">Register</a>
+          {% endif %}
+          <button type="button" class="hamburger hamburger-landing" id="hamburger-landing" aria-label="Menu">☰</button>
+        </div>
       </div>
-      <div class="navbar-right">
-        <button type="button" class="btn btn-outline btn-sm" id="theme-toggle">Dark</button>
-        <a href="{% url 'login_page' %}" class="btn btn-primary btn-sm">Login/Register</a>
-      </div>
-    </div>
-  </nav>
+    </nav>
+  </header>
 
   <main class="landing-main">
-    <section class="hero-metal container">
-      <p class="hero-kicker">Future-ready governance platform</p>
-      <h1>CivicLens: Smart Civic Issue Reporting System</h1>
-      <p class="hero-sub">
-        Government-grade civic grievance intelligence with transparent tracking, smart prioritization, and live city-wide visibility.
-      </p>
-      <div class="hero-cta">
-        <a href="{% url 'submit_issue' %}" class="btn btn-primary btn-lg">Report Issue</a>
-        <a href="{% url 'my_reports' %}" class="btn btn-outline btn-lg">Track Complaint</a>
-        <a href="{% url 'map_view' %}" class="btn btn-outline btn-lg">View Map</a>
-        <a href="{% url 'login_page' %}" class="btn btn-accent btn-lg">Login/Register</a>
+    <section class="hero-3d">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="container hero-inner" data-aos="fade-up">
+        <p class="hero-eyebrow chrome-eyebrow">Government-grade civic intelligence</p>
+        <h1 class="hero-title">CivicLens: Smart Civic Issue Reporting System</h1>
+        <p class="hero-sub">
+          Report issues with evidence, watch your city respond in real time, and see impact on a live metallic map.
+          Built for citizens, departments, and the future of transparent governance.
+        </p>
+        <div class="hero-cta-row">
+          <a class="btn btn-hero btn-primary metallic-shine" href="{% url 'submit_issue' %}">Report Issue</a>
+          <a class="btn btn-hero btn-outline chrome-border" href="{% url 'track_issue' %}">Track Complaint</a>
+          <a class="btn btn-hero btn-outline chrome-border" href="{% url 'map_view' %}">View Map</a>
+          <a class="btn btn-hero btn-accent metallic-shine" href="{% url 'login_page' %}">Login / Register</a>
+        </div>
       </div>
     </section>
 
-    <section class="container stats-strip" id="live-stats">
-      <article class="metal-card stat-card-3d">
-        <span>Total Issues</span>
-        <strong id="landing-total">0</strong>
-      </article>
-      <article class="metal-card stat-card-3d">
-        <span>Resolved</span>
-        <strong id="landing-resolved">0</strong>
-      </article>
-      <article class="metal-card stat-card-3d">
-        <span>Active</span>
-        <strong id="landing-active">0</strong>
-      </article>
+    <section class="section-stats container" data-aos="fade-up">
+      <div class="stat-grid-landing">
+        <article class="glass-card stat-chrome tilt-hover">
+          <div class="stat-value chrome-num" id="stat-total-landing">{{ public_stats.total|default:0 }}</div>
+          <div class="stat-label-muted">Total Issues</div>
+        </article>
+        <article class="glass-card stat-chrome tilt-hover">
+          <div class="stat-value chrome-num text-resolved" id="stat-resolved-landing">{{ public_stats.resolved|default:0 }}</div>
+          <div class="stat-label-muted">Resolved</div>
+        </article>
+        <article class="glass-card stat-chrome tilt-hover">
+          <div class="stat-value chrome-num text-active" id="stat-active-landing">{{ public_stats.active|default:0 }}</div>
+          <div class="stat-label-muted">Active</div>
+        </article>
+      </div>
     </section>
 
-    <section class="container features-grid" id="about">
-      <article class="metal-card floating">
-        <h3>Smart Detection</h3>
-        <p>Duplicate and nearby issue awareness with contextual prompts before submission.</p>
-      </article>
-      <article class="metal-card floating">
-        <h3>Impact Intelligence</h3>
-        <p>Dynamic impact score and trend signals to prioritize critical issues quickly.</p>
-      </article>
-      <article class="metal-card floating">
-        <h3>Live Civic Map</h3>
-        <p>Color-coded geotagged reports and hotspots for faster field operations.</p>
-      </article>
-      <article class="metal-card floating">
-        <h3>Citizen Gamification</h3>
-        <p>Reward badges and leaderboard points for high-quality verified reports.</p>
-      </article>
+    <section class="section-features container">
+      <h2 class="section-heading" data-aos="fade-up">Premium capabilities</h2>
+      <div class="feature-grid">
+        <article class="glass-card feature-card tilt-hover" data-aos="fade-up" data-aos-delay="0">
+          <div class="feature-icon metallic-icon">◆</div>
+          <h3>AI-style classification</h3>
+          <p>Smart keyword routing sends your report to the right category and priority band automatically.</p>
+        </article>
+        <article class="glass-card feature-card tilt-hover" data-aos="fade-up" data-aos-delay="80">
+          <div class="feature-icon metallic-icon">◇</div>
+          <h3>Multi-modal evidence</h3>
+          <p>Photos, video, and audio attachments help departments verify and resolve faster.</p>
+        </article>
+        <article class="glass-card feature-card tilt-hover" data-aos="fade-up" data-aos-delay="160">
+          <div class="feature-icon metallic-icon">◎</div>
+          <h3>Live civic map</h3>
+          <p>Clustered hotspots, priority-aware markers, and real-time refresh across devices.</p>
+        </article>
+        <article class="glass-card feature-card tilt-hover" data-aos="fade-up" data-aos-delay="240">
+          <div class="feature-icon metallic-icon">✦</div>
+          <h3>Gamified trust</h3>
+          <p>Points, badges, and a public leaderboard reward high-quality, evidence-backed reports.</p>
+        </article>
+      </div>
     </section>
 
-    <section class="container contact-strip" id="contact">
-      <h3>Built for citizens, trusted by administration.</h3>
-      <p>Designed for mobile-first operations, real-time updates, and transparent public accountability.</p>
+    <section class="section-cta container" data-aos="zoom-in">
+      <div class="glass-card cta-wide tilt-hover">
+        <h2>Your city. Your data. One connected CivicLens.</h2>
+        <p>Join citizens already mapping issues, upvoting impact, and celebrating resolutions.</p>
+        <a class="btn btn-primary btn-lg metallic-shine" href="{% url 'register_page' %}">Create your account</a>
+      </div>
     </section>
   </main>
 
+  <footer class="landing-footer">
+    <div class="container footer-inner">
+      <strong class="brand-text-gradient">CivicLens</strong>
+      <span class="footer-meta">Smart Civic Issue Reporting System · {% now "Y" %}</span>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
   <script src="{% static 'js/utils.js' %}"></script>
-  <script src="{% static 'js/landing.js' %}"></script>
+  <script src="{% static 'js/theme.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof AOS !== 'undefined') {
+        AOS.init({ duration: 800, once: true, offset: 60 });
+      }
+      document.getElementById('hamburger-landing')?.addEventListener('click', function () {
+        document.querySelector('.nav-landing-links')?.classList.toggle('open');
+      });
+      document.getElementById('landing-logout')?.addEventListener('click', async function (e) {
+        e.preventDefault();
+        try { await API.post('/api/logout/'); } catch (err) {}
+        localStorage.removeItem('civic_user');
+        window.location.href = '{% url "home" %}';
+      });
+      (function refreshStats() {
+        fetch('/api/public/stats/', { credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var t = document.getElementById('stat-total-landing');
+            var r = document.getElementById('stat-resolved-landing');
+            var a = document.getElementById('stat-active-landing');
+            if (t && d.total !== undefined) t.textContent = d.total;
+            if (r && d.resolved !== undefined) r.textContent = d.resolved;
+            if (a && d.active !== undefined) a.textContent = d.active;
+          })
+          .catch(function () {});
+        setTimeout(refreshStats, 12000);
+      })();
+    });
+  </script>
 </body>
 </html>

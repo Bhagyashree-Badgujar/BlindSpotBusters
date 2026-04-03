@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  {% include 'partials/civic-head.html' %}
+  <title>Track Complaint — CivicLens</title>
+</head>
+<body class="landing-body">
+  <header class="nav-landing-wrap">
+    <nav class="navbar navbar-landing">
+      <div class="navbar-inner">
+        <a href="{% url 'home' %}" class="navbar-brand brand-metallic">
+          <span class="brand-icon brand-icon-glow">◈</span>
+          <span class="brand-text-gradient">CivicLens</span>
+        </a>
+        <div class="navbar-nav nav-landing-links">
+          <a class="nav-link" href="{% url 'home' %}">Home</a>
+          <a class="nav-link active" href="{% url 'track_issue' %}">Track</a>
+          <a class="nav-link" href="{% url 'map_view' %}">Map</a>
+        </div>
+        <div class="navbar-right landing-actions">
+          <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme"></button>
+          <a class="btn btn-outline btn-sm" href="{% url 'login_page' %}">Login</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main class="container page-static">
+    <div class="glass-card tilt-hover page-static-card">
+      <h1 class="section-heading">Track a complaint</h1>
+      <p class="text-muted-block">Enter the issue ID you received after submitting a report.</p>
+      <div class="form-group">
+        <label class="form-label" for="track-id">Issue ID</label>
+        <input class="form-input" type="number" id="track-id" min="1" placeholder="e.g. 42" />
+      </div>
+      <button type="button" class="btn btn-primary metallic-shine" id="track-btn">Lookup</button>
+      <div id="track-result" class="track-result hidden"></div>
+    </div>
+  </main>
+  <footer class="landing-footer">
+    <div class="container footer-inner">
+      <strong class="brand-text-gradient">CivicLens</strong>
+    </div>
+  </footer>
+  <script src="{% static 'js/utils.js' %}"></script>
+  <script src="{% static 'js/theme.js' %}"></script>
+  <script>
+    document.getElementById('track-btn').addEventListener('click', async function () {
+      var id = document.getElementById('track-id').value;
+      var box = document.getElementById('track-result');
+      if (!id) {
+        Toast.show('Enter an issue ID', 'warn');
+        return;
+      }
+      box.classList.add('hidden');
+      try {
+        var data = await API.get('/api/issues/' + id + '/');
+        box.classList.remove('hidden');
+        box.innerHTML =
+          '<h3 style="margin:16px 0 8px;">' +
+          (data.title || '') +
+          '</h3><p class="text-muted-block">' +
+          (data.description || '').slice(0, 400) +
+          '</p><p><strong>Status:</strong> ' +
+          (data.status || '') +
+          '</p><p><strong>Impact score:</strong> ' +
+          (data.impact_score != null ? data.impact_score : '') +
+          '</p>';
+      } catch (e) {
+        Toast.show('Issue not found', 'error');
+      }
+    });
+  </script>
+</body>
+</html>
