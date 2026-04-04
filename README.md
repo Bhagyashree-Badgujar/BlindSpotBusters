@@ -37,3 +37,9 @@ $env:DEFAULT_FROM_EMAIL="CivicLens <YOUR_EMAIL>"
 python manage.py runserver
 ```
 
+Team Members:
+1. Bhagyashree Badgujar
+2. Radhika Sankpal
+3. Sayali Talekar
+4. Vinod Mangate
+
